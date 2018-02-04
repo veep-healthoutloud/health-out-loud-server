@@ -4,6 +4,7 @@ const MongoClient = require('mongodb').MongoClient
 
 // DB INITIALIZATION STUFF
 var db;
+// This is connecting to our cloud which we registered for 02/04/2018. URL format is mongodb://<user>:<password>@ds125068......
 MongoClient.connect('mongodb://test:test@ds125068.mlab.com:25068/healthoutloud', (err, database) => {
 	if (err) return console.log(err);
 
@@ -33,7 +34,8 @@ app.get('/', (req, res) => {
 // USER ENDPOINTS
 app.post('/user', (req, res) => {
 	// Only write to DB if email and password are provided
-	if (!(req.body.email && req.body.password)) return console.log('email & password not provided')
+	if (!(req.body.email && req.body.password)) return console.log('email & password not provided');
+	if (!(validateEmail(req.body.email) && validatePassword(req.body.password))) return console.log('invalid email or password');
 
 	// Create a new user
 	db.collection('user').save(req.body, (err, result) => {
@@ -41,11 +43,21 @@ app.post('/user', (req, res) => {
 
 		res.send({'email': req.email});
 	});
-})
+});
 
 app.put('/user', (req, res) => {
 
-})
+});
+
+
+// TODO: write implementations of password + email validation and then move them to a separate helper node module.
+function validatePassword(password) {
+	// validate password
+}
+
+function validateEmail(email) {
+	// validate email
+}
 
 // TODO: handle the case where somehow a request is sent but the database is down (and by extension the server is down	)
 
