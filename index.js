@@ -1,5 +1,9 @@
 const express = require('express');
 const app = express();
+var bodyParser = require('body-parser');
+app.use(bodyParser.json()); // support json encoded bodies
+app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+
 const MongoClient = require('mongodb').MongoClient
 
 // DB INITIALIZATION STUFF
@@ -47,6 +51,41 @@ app.post('/user', (req, res) => {
 
 app.put('/user', (req, res) => {
 
+});
+
+
+//POST ENDPOINTS
+app.post('/post', (req, res) => { 
+	//Request must supply post text and a feeling array
+	if (!(req.body.postBody && req.body.feeling)) return res.sendStatus(400); //Bad request, missing parameters
+
+	//add a user and date to request
+	req.body.author = "TEMP"; //TODO: Need to pass along user id, once we add authentication
+	req.body.date = new Date().toJSON();
+
+	//Create new post
+	db.collection('post').save(req.body, (err, result) => {
+	    // if (err) return console.log(err);
+
+	    // res.json(result);
+	    if(err) {
+    		response = { error: true, message: "Error adding data" };
+  		} else {
+    		response = { error: false, message: "Data added", id: result._id };
+  		}
+  		res.json(response);
+  	})
+
+});
+
+//POSTS endpoint (Get all posts)
+//TODO: Allow for feeling parameter to get all posts by feeling
+app.get('/posts', (req, res) => {
+  	db.collection('post').find().toArray(function(err, result) {
+  		if (err) return console.log(err);
+
+  		res.json(result); //defaults to status 200
+	});
 });
 
 
