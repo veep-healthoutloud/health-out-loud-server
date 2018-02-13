@@ -53,6 +53,7 @@ app.put('/user', (req, res) => {
 
 });
 
+//TODO: Request parameter validation, etc feeling should be an array
 
 //POST ENDPOINTS
 app.post('/post', (req, res) => { 
@@ -65,12 +66,10 @@ app.post('/post', (req, res) => {
 
 	//Create new post
 	db.collection('post').save(req.body, (err, result) => {
-	    // if (err) return console.log(err);
-
-	    // res.json(result);
 	    if(err) {
     		response = { error: true, message: "Error adding data" };
-  		} else {
+  		} 
+  		else {
     		response = { error: false, message: "Data added", id: result._id };
   		}
   		res.json(response);
@@ -78,16 +77,25 @@ app.post('/post', (req, res) => {
 
 });
 
-//POSTS endpoint (Get all posts)
-//TODO: Allow for feeling parameter to get all posts by feeling
-app.get('/posts', (req, res) => {
-  	db.collection('post').find().toArray(function(err, result) {
-  		if (err) return console.log(err);
+//POSTS Endpoints
 
-  		res.json(result); //defaults to status 200
+// Get all posts by a feeling
+app.get('/posts/feeling/:feeling', (req, res) => {
+	db.collection('post').find({feeling: req.params.feeling}).toArray(function(err, result) {
+  		if (err) return res.status(500).send(err);
+
+  		res.json(result);
 	});
 });
 
+// Get all posts
+app.get('/posts', (req, res) => {
+  	db.collection('post').find().toArray(function(err, result) {
+  		if (err) return res.status(500).send(err);
+
+  		res.json(result);
+	});
+});
 
 // TODO: write implementations of password + email validation and then move them to a separate helper node module.
 function validatePassword(password) {
