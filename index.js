@@ -67,10 +67,10 @@ app.post('/post', (req, res) => {
 	//Create new post
 	db.collection('post').save(req.body, (err, result) => {
 	    if(err) {
-    		response = { error: true, message: "Error adding data" };
+    		response = {error: true, message: "Error adding data"};
   		} 
   		else {
-    		response = { error: false, message: "Data added", id: result._id };
+    		response = {error: false, message: "Data added", id: result._id};
   		}
   		res.json(response);
   	})
