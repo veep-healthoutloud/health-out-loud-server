@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000;
 // DB INITIALIZATION STUFF
 var db;
 // This is connecting to our cloud which we registered for 02/04/2018. URL format is mongodb://<user>:<password>@ds125068......
-MongoClient.connect('mongodb://test:test@ds125068.mlab.com:25068/healthoutloud', (err, database) => {
+MongoClient.connect(process.env.MONGODB_URI, (err, database) => {
 	if (err) return console.log(err);
 
 	// recall that our db name is healthoutloud (this should be paramatized later to be <databasename>)
