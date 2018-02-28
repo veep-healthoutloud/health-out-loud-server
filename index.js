@@ -4,7 +4,8 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
-const MongoClient = require('mongodb').MongoClient
+const MongoClient = require('mongodb').MongoClient;
+const port = process.env.PORT || 3000;
 
 // DB INITIALIZATION STUFF
 var db;
@@ -17,7 +18,7 @@ MongoClient.connect('mongodb://test:test@ds125068.mlab.com:25068/healthoutloud',
 	db = database.db('healthoutloud');
 
 	// only start the server if the database is running
-	app.listen(3000, () => {
+	app.listen(port, () => {
 	    console.log('listening on 3000')
 	    console.log("Server is up and running!")
 	});
