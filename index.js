@@ -59,8 +59,8 @@ app.put('/user', (req, res) => {
 
 //POST ENDPOINTS
 app.post('/post', (req, res) => { 
-	//Request must supply post text and a feeling array
-	if (!(req.body.postBody && req.body.feeling)) return res.sendStatus(400); //Bad request, missing parameters
+	//Request must supply post text and a feelings array
+	if (!(req.body.postBody && req.body.feelings)) return res.sendStatus(400); //Bad request, missing parameters
 
 	//add a user and date to request
 	req.body.author = "TEMP"; //TODO: Need to pass along user id, once we add authentication
