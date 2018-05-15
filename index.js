@@ -25,19 +25,8 @@ MongoClient.connect(dbURI, (err, database) => {
 	});
 });
 
-/*
-	BACKEND GUYS: try to keep naming of parameters in the callbacks consistent so we don't get confused
-	eg. req for Request, res for Response. Also, when returning the responses, first check if Courtney
-	has specified any particular format/shape of the JSON body; otherwise keep the response body SHALLOW
-	eg. {'key1' : 'value1', 'key2' : 'value2'} vs. {'key1': {key2 : [value1, value2]}}
-*/
-
-// ROOT
-app.get('/', (req, res) => {
-	res.send('Hello World');
-});
-
 // USER ENDPOINTS
+//Add a new user to db
 app.post('/user', (req, res) => {
 	// Only write to DB if email and password are provided
 	if (!(req.body.email && req.body.password)) return console.log('email & password not provided');
@@ -51,11 +40,8 @@ app.post('/user', (req, res) => {
 	});
 });
 
-app.put('/user', (req, res) => {
+//login endpoint -> returns JWT
 
-});
-
-//TODO: Request parameter validation, etc feeling should be an array
 
 //POST ENDPOINTS
 app.post('/post', (req, res) => { 
