@@ -8,6 +8,9 @@ const MongoClient = require('mongodb').MongoClient;
 const port = process.env.PORT || 3000;
 const dbURI = process.env.MONGODB_URI || "mongodb://test:test@ds125068.mlab.com:25068/healthoutloud";
 
+require('./passport');
+const User = require('./user');
+
 // DB INITIALIZATION STUFF
 var db;
 // This is connecting to our cloud which we registered for 02/04/2018. URL format is mongodb://<user>:<password>@ds125068......
@@ -26,17 +29,25 @@ MongoClient.connect(dbURI, (err, database) => {
 });
 
 // USER ENDPOINTS
+
 //Add a new user to db
 app.post('/user', (req, res) => {
 	// Only write to DB if email and password are provided
-	if (!(req.body.email && req.body.password)) return console.log('email & password not provided');
-	if (!(validateEmail(req.body.email) && validatePassword(req.body.password))) return console.log('invalid email or password');
+	if (!(req.body.email && req.body.password)) return res.sendStatus(400);
 
 	// Create a new user
-	db.collection('user').save(req.body, (err, result) => {
+	var user = new User(req.body.email);
+	//Validate email and password
+	if (!user.isValidEmail(req.body.email)) return res.status(400).send('Invalid email');
+	if (!user.isValidPassword(req.body.password)) return res.status(400).send('Invalid password');
+
+	user.setPassword(req.body.password); //salt and hash
+
+	//Save user object to DB
+	db.collection('user').save(user, (err, result) => {
 		if (err) return console.log(err);
 
-		res.send({'email': req.email});
+		res.sendStatus(200);
 	});
 });
 
