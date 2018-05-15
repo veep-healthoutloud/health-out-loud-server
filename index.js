@@ -85,15 +85,6 @@ app.get('/posts', (req, res) => {
 	});
 });
 
-// TODO: write implementations of password + email validation and then move them to a separate helper node module.
-function validatePassword(password) {
-	// validate password
-}
-
-function validateEmail(email) {
-	// validate email
-}
-
 // TODO: handle the case where somehow a request is sent but the database is down (and by extension the server is down	)
 
 // NOTES (Refer to here if there's something that applies to a lot of code but isn't commented)
