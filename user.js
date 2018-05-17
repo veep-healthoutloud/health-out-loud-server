@@ -26,6 +26,14 @@ class User {
   		this.hash = crypto.pbkdf2Sync(password, this.salt, 10000, 64,'sha512').toString('hex');
 	}
 
+	setSalt(salt) {
+		this.salt = salt;
+	}
+
+	setHash(hash) {
+		this.hash = hash;
+	}
+
 	validatePassword(password) {
 		var hash = crypto.pbkdf2Sync(password, this.salt, 10000, 64,'sha512').toString('hex');
   		return this.hash === hash;
@@ -39,6 +47,8 @@ class User {
 		{
 			expiresIn: '2h'
 		});
+
+		return jwtToken;
 	}
 }
 

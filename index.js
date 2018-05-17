@@ -8,7 +8,9 @@ const MongoClient = require('mongodb').MongoClient;
 const port = process.env.PORT || 3000;
 const dbURI = process.env.MONGODB_URI || "mongodb://test:test@ds125068.mlab.com:25068/healthoutloud";
 
+const passport = require('passport');
 require('./passport');
+
 const User = require('./user');
 
 // DB INITIALIZATION STUFF
@@ -59,8 +61,23 @@ app.post('/user', (req, res) => {
 
 });
 
-//login endpoint -> returns JWT
+app.post('/login', function (req, res) {
+    passport.authenticate('local', (err, user, info) => {
+        if (err) {
+          console.log(err);
+          return res.sendStatus(404);
+        }
 
+        if (!user) {
+          return res.status(401).send(info);
+        }
+
+        //user validated in passport.js (since user object was returned) - return token
+        var userToken = user.createJWT();
+        return res.json({token: userToken});
+
+    })(req, res);
+});
 
 //POST ENDPOINTS
 app.post('/post', (req, res) => { 
