@@ -1,7 +1,11 @@
-//A Local passport strategy
+//This file houses passport.js strategies to be used as middleware authentication in endpoints
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const User = require('./user');
+
+const passportJWT = require('passport-jwt');
+const JWTStrategy   = passportJWT.Strategy;
+const ExtractJWT = passportJWT.ExtractJwt;
 
 const MongoClient = require('mongodb').MongoClient;
 const port = process.env.PORT || 3000;
@@ -37,5 +41,16 @@ passport.use('local', new LocalStrategy({
 			//Password valid so return user object
 			return done(null, user, {message: 'Logged In Successfully'});	
 	});  
+    }
+));
+
+passport.use(new JWTStrategy({
+        jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
+        secretOrKey   : 'temp_secret'
+    },
+    function (jwtPayload, done) {
+    	//Can use email to find user in db, not needed as of now.
+    	var user = new User(jwtPayload.email);
+    	return done(null, user);
     }
 ));

@@ -23,7 +23,7 @@ class User {
 
 	setPassword(password) {
 		this.salt = crypto.randomBytes(16).toString('hex');
-  		this.hash = crypto.pbkdf2Sync(password, this.salt, 10000, 64,'sha512').toString('hex');
+  		this.hash = crypto.pbkdf2Sync(password, this.salt, 10000, 64, 'sha512').toString('hex');
 	}
 
 	setSalt(salt) {
@@ -35,7 +35,7 @@ class User {
 	}
 
 	validatePassword(password) {
-		var hash = crypto.pbkdf2Sync(password, this.salt, 10000, 64,'sha512').toString('hex');
+		var hash = crypto.pbkdf2Sync(password, this.salt, 10000, 64, 'sha512').toString('hex');
   		return this.hash === hash;
 	}
 

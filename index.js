@@ -67,7 +67,6 @@ app.post('/login', function (req, res) {
           console.log(err);
           return res.sendStatus(404);
         }
-
         if (!user) {
           return res.status(401).send(info);
         }
@@ -80,43 +79,46 @@ app.post('/login', function (req, res) {
 });
 
 //POST ENDPOINTS
-app.post('/post', (req, res) => { 
-	//Request must supply post text and a feelings array
-	if (!(req.body.postBody && req.body.feelings)) return res.sendStatus(400); //Bad request, missing parameters
 
-	//add a user and date to request
-	req.body.author = "TEMP"; //TODO: Need to pass along user id, once we add authentication
-	req.body.date = new Date().toJSON();
+app.post('/post', function (req, res) {
+    passport.authenticate('jwt', (err, user, info) => {
+        if (err) {
+          console.log(err);
+          return res.sendStatus(404);
+        }
 
-	//Create new post
-	db.collection('post').save(req.body, (err, result) => {
-	    if(err) {
-    		response = {error: true, message: "Error adding data"};
-  		} 
-  		else {
-    		response = {error: false, message: "Data added", id: result._id};
-  		}
-  		res.json(response);
-  	})
+        //Request must supply post text and a feelings array
+		if (!(req.body.postBody && req.body.feelings)) return res.sendStatus(400); //Bad request, missing parameters
 
+		//add a user and date to request
+		req.body.author = user.email;
+		req.body.date = new Date().toJSON();
+
+		//Create new post
+		db.collection('post').save(req.body, (err, result) => {
+		    if(err) {
+	    		response = {error: true, message: "Error adding data"};
+	  		} 
+	  		else {
+	    		response = {error: false, message: "Data added", id: result._id};
+	  		}
+	  		res.json(response);
+	  	})
+    })(req, res);
 });
 
-//POSTS Endpoints
-
 // Get all posts by a feeling
-app.get('/posts/feeling/:feeling', (req, res) => {
+app.get('/posts/feeling/:feeling', passport.authenticate('jwt', { session: false }), (req, res) => {
 	db.collection('post').find({feeling: req.params.feeling}).toArray(function(err, result) {
   		if (err) return res.status(500).send(err);
-
   		res.json(result);
 	});
 });
 
 // Get all posts
-app.get('/posts', (req, res) => {
+app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
   	db.collection('post').find().toArray(function(err, result) {
   		if (err) return res.status(500).send(err);
-
   		res.json(result);
 	});
 });
