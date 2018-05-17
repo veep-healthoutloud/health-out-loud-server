@@ -30,7 +30,7 @@ MongoClient.connect(dbURI, (err, database) => {
 
 // USER ENDPOINTS
 
-//Add a new user to db
+//Registration: Add a new user to db
 app.post('/user', (req, res) => {
 	// Only write to DB if email and password are provided
 	if (!(req.body.email && req.body.password)) return res.sendStatus(400);
@@ -41,14 +41,22 @@ app.post('/user', (req, res) => {
 	if (!user.isValidEmail(req.body.email)) return res.status(400).send('Invalid email');
 	if (!user.isValidPassword(req.body.password)) return res.status(400).send('Invalid password');
 
-	user.setPassword(req.body.password); //salt and hash
+	//Check if email already exists
+  	db.collection('user').count({ email: req.body.email }, function (err, count){ 
+    	if(count > 0) {
+        	return res.status(400).send('Email already exists');
+    	}
+    	else { //Save user object to DB
+		 	user.setPassword(req.body.password); //salt and hash
 
-	//Save user object to DB
-	db.collection('user').save(user, (err, result) => {
-		if (err) return console.log(err);
+			db.collection('user').save(user, (err, result) => {
+				if (err) return console.log(err);
 
-		res.sendStatus(200);
-	});
+				res.sendStatus(200);
+			});   		
+    	}
+	}); 
+
 });
 
 //login endpoint -> returns JWT
