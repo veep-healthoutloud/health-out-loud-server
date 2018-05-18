@@ -1,30 +1,25 @@
 const express = require('express');
 const app = express();
+
 var bodyParser = require('body-parser');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
-
-const MongoClient = require('mongodb').MongoClient;
-const port = process.env.PORT || 3000;
-const dbURI = process.env.MONGODB_URI || "mongodb://test:test@ds125068.mlab.com:25068/healthoutloud";
 
 const passport = require('passport');
 require('./passport');
 
 const User = require('./user');
+const port = process.env.PORT || 3000;
 
-// DB INITIALIZATION STUFF
+//Get DB Connection and start server
+var dbConnection = require('./db_connection');
 var db;
-// This is connecting to our cloud which we registered for 02/04/2018. URL format is mongodb://<user>:<password>@ds125068......
-MongoClient.connect(dbURI, (err, database) => {
+dbConnection.connectToServer(function(err) {
 	if (err) return console.log(err);
 
-	// recall that our db name is healthoutloud (this should be paramatized later to be <databasename>)
-	// TODO: if we ever need more than one database, change 'healthoutloud' string literal to <databasename>
-	db = database.db('healthoutloud');
+	db = dbConnection.getDb();
 
-	// only start the server if the database is running
-	app.listen(port, () => {
+  	app.listen(port, () => {
 	    console.log('listening on 3000')
 	    console.log("Server is up and running!")
 	});

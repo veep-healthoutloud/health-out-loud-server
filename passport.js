@@ -7,17 +7,8 @@ const passportJWT = require('passport-jwt');
 const JWTStrategy   = passportJWT.Strategy;
 const ExtractJWT = passportJWT.ExtractJwt;
 
-const MongoClient = require('mongodb').MongoClient;
-const port = process.env.PORT || 3000;
-const dbURI = process.env.MONGODB_URI || "mongodb://test:test@ds125068.mlab.com:25068/healthoutloud";
-
-// DB INITIALIZATION STUFF
-var db;
-// This is connecting to our cloud which we registered for 02/04/2018. URL format is mongodb://<user>:<password>@ds125068......
-MongoClient.connect(dbURI, (err, database) => {
-	if (err) return console.log(err);
-	db = database.db('healthoutloud');
-});
+var dbConnection = require('./db_connection');
+var db = dbConnection.getDb();
 
 passport.use('local', new LocalStrategy({
         usernameField: 'email',
