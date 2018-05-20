@@ -40,6 +40,8 @@ app.post('/user', (req, res) => {
 
 	//Check if email already exists
   	db.collection('user').count({ email: req.body.email }, function (err, count){ 
+  		if (err) return console.log(err);
+
     	if(count > 0) {
         	return res.status(400).send('Email already exists');
     	}
@@ -48,7 +50,6 @@ app.post('/user', (req, res) => {
 
 			db.collection('user').save(user, (err, result) => {
 				if (err) return console.log(err);
-
 				res.sendStatus(200);
 			});   		
     	}
