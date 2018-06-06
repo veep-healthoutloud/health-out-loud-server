@@ -8,7 +8,11 @@ const JWTStrategy   = passportJWT.Strategy;
 const ExtractJWT = passportJWT.ExtractJwt;
 
 var dbConnection = require('./db_connection');
-var db = dbConnection.getDb();
+var db;
+dbConnection.connectToServer(function(err) {
+	if (err) return console.log(err);
+	db = dbConnection.getDb();
+});
 
 passport.use('local', new LocalStrategy({
         usernameField: 'email',

@@ -105,7 +105,7 @@ app.post('/post', function (req, res) {
 
 // Get all posts by a feeling
 app.get('/posts/feeling/:feeling', passport.authenticate('jwt', { session: false }), (req, res) => {
-	db.collection('post').find({feeling: req.params.feeling}).toArray(function(err, result) {
+	db.collection('post').find({feelings: req.params.feeling}).toArray(function(err, result) {
   		if (err) return res.status(500).send(err);
   		res.json(result);
 	});
