@@ -30,20 +30,20 @@ dbConnection.connectToServer(function(err) {
 //Registration: Add a new user to db
 app.post('/user', (req, res) => {
 	// Only write to DB if email and password are provided
-	if (!(req.body.email && req.body.password)) return res.sendStatus(400);
+	if (!(req.body.email && req.body.password)) return res.status(400).send({ error: 'Missing parameters' });
 
 	// Create a new user
 	var user = new User(req.body.email);
 	//Validate email and password
-	if (!user.isValidEmail(req.body.email)) return res.status(400).send('Invalid email');
-	if (!user.isValidPassword(req.body.password)) return res.status(400).send('Invalid password');
+	if (!user.isValidEmail(req.body.email)) return res.status(400).send({ error: 'Invalid email' });
+	if (!user.isValidPassword(req.body.password)) return res.status(400).send({ error: 'Invalid password' });
 
 	//Check if email already exists
   	db.collection('user').count({ email: req.body.email }, function (err, count){ 
   		if (err) return console.log(err);
 
     	if(count > 0) {
-        	return res.status(400).send('Email already exists');
+        	return res.status(400).send({ error: 'Email already exists' });
     	}
     	else { //Save user object to DB
 		 	user.setPassword(req.body.password); //salt and hash
@@ -84,7 +84,7 @@ app.post('/post', function (req, res) {
         }
 
         //Request must supply post text and a feelings array
-		if (!(req.body.postBody && req.body.feelings)) return res.sendStatus(400); //Bad request, missing parameters
+		if (!(req.body.postBody && req.body.feelings)) return res.status(400).send({ error: 'Missing parameters' });
 
 		//add a user and date to request
 		req.body.author = user.email;
@@ -93,10 +93,10 @@ app.post('/post', function (req, res) {
 		//Create new post
 		db.collection('post').save(req.body, (err, result) => {
 		    if(err) {
-	    		response = {error: true, message: "Error adding data"};
+	    		response = {error: "Error adding data"};
 	  		} 
 	  		else {
-	    		response = {error: false, message: "Data added", id: result._id};
+	    		response = {success: "Data added", id: result._id};
 	  		}
 	  		res.json(response);
 	  	})
