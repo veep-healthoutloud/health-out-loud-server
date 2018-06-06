@@ -111,6 +111,14 @@ app.get('/posts/feeling/:feeling', passport.authenticate('jwt', { session: false
 	});
 });
 
+// Get all posts by a user
+app.get('/posts/user/:email', passport.authenticate('jwt', { session: false }), (req, res) => {
+	db.collection('post').find({author: req.params.email}).toArray(function(err, result) {
+  		if (err) return res.status(500).send(err);
+  		res.json(result);
+	});
+});
+
 // Get all posts
 app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
   	db.collection('post').find().toArray(function(err, result) {
