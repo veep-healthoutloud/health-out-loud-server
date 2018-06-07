@@ -57,6 +57,26 @@ app.post('/user', (req, res) => {
 
 });
 
+// Verify a user through token link received by email
+app.get('/verify/:token', (req, res) => {
+	//Find the user that needs to be verified by looking for token
+	db.collection('unverified').findOne({ "token.verifyToken": req.params.token }, function (err, result) { 
+		if (err) return res.status(500).send(err); //User does not exist
+  		//res.json(result);
+
+  		//Make sure token is not expired
+  		var user = new User(result.email);
+  		//user.setToken(result.token); //Dont need this ?
+  		if (!user.isValidToken(result.token)) return res.status(400).send({ error: 'Expired token' });
+
+  		//Token is valid so move to user collection since the user has now been validated
+  		//These operations are not atomic!
+  		db.collection('user').insert(result);
+  		db.collection('unverified').remove(result);
+
+	}); 
+});
+
 app.post('/login', function (req, res) {
     passport.authenticate('local', (err, user, info) => {
         if (err) {

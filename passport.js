@@ -20,7 +20,7 @@ passport.use('local', new LocalStrategy({
         session: false
     }, 
     function (email, password, done) {
-		db.collection('user').findOne({ email: email }, function (err, result){ 
+		db.collection('user').findOne({ email: email }, function (err, result) { 
 			if (!result) {
 				return done(null, false, {error: 'Incorrect email or password.'}); //User doesnt exist
 			}
