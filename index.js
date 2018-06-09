@@ -28,7 +28,7 @@ dbConnection.connectToServer(function(err) {
 // USER ENDPOINTS
 
 //Registration: Add a new user to db
-app.post('/user', (req, res) => {
+app.post('/registerAccount', (req, res) => {
 	// Only write to DB if email and password are provided
 	if (!(req.body.email && req.body.password)) return res.status(400).send({ error: 'Missing parameters' });
 
@@ -57,20 +57,30 @@ app.post('/user', (req, res) => {
 
 });
 
+//req.query.breed
+//http://localhost:8080/verifyAccount?client_id=cd2b7c19c9734a2ab98dc251868d7724&verification_code=fdca81bae49e43a8b20493fc5ee29052
+
+// var ObjectId = require('mongodb').ObjectID;
+
 // Verify a user through token link received by email
-app.get('/verify/:token', (req, res) => {
+app.get('/verifyAccount', (req, res) => {
 	//Find the user that needs to be verified by looking for token
-	db.collection('unverified').findOne({ "token.verifyToken": req.params.token }, function (err, result) { 
-		if (err) return res.status(500).send(err); //User does not exist
+	db.collection('unverified').findOne({ "_id": ObjectId(req.query.client_id) }, function (err, result) { 
+		if (err) return res.status(500).send(err);
   		//res.json(result);
 
-  		//Make sure token is not expired
+  		//if empty return 404 error
+
+  		if (req.query.verification_code !== result.token.verifyToken) return res.status(404).send({ error: 'Invalid token' });
+
+  		//Tokens are the same now make sure token is not expired
   		var user = new User(result.email);
   		//user.setToken(result.token); //Dont need this ?
   		if (!user.isValidToken(result.token)) return res.status(400).send({ error: 'Expired token' });
 
   		//Token is valid so move to user collection since the user has now been validated
   		//These operations are not atomic!
+  		//Dont need to remove the token field from db, just reset it when its used again
   		db.collection('user').insert(result);
   		db.collection('unverified').remove(result);
 
@@ -93,6 +103,10 @@ app.post('/login', function (req, res) {
 
     })(req, res);
 });
+
+//To be used for RESEND verification email
+//refreshVerifyCode
+//Make sure its protected by JWT
 
 //POST ENDPOINTS
 

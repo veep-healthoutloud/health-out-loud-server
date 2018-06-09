@@ -32,6 +32,15 @@ passport.use('local', new LocalStrategy({
 			if (!user.validatePassword(password)) { //Validate with user supplied password
 				return done(null, false, {error: 'Incorrect email or password.'});
 			}
+
+			//Make sure user is verified, unverified users must not get a JWT
+		  	db.collection('unverified').count({ email: req.body.email }, function (err, count){ 
+		  		if (err) return console.log(err);
+
+		    	if(count > 0) {
+		        	return res.status(404).send({ error: 'User is unverified' });
+		    	}
+			}); 
 			
 			//Password valid so return user object
 			return done(null, user, {success: 'Logged In Successfully'});	
