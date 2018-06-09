@@ -5,6 +5,8 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
+var ObjectID = require('mongodb').ObjectID;
+
 const passport = require('passport');
 require('./passport');
 
@@ -59,9 +61,6 @@ app.post('/registerAccount', (req, res) => {
 
 //req.query.breed
 //http://localhost:8080/verifyAccount?client_id=cd2b7c19c9734a2ab98dc251868d7724&verification_code=fdca81bae49e43a8b20493fc5ee29052
-
-// var ObjectId = require('mongodb').ObjectID;
-
 // Verify a user through token link received by email
 app.get('/verifyAccount', (req, res) => {
 	//Find the user that needs to be verified by looking for token
@@ -69,7 +68,7 @@ app.get('/verifyAccount', (req, res) => {
 		if (err) return res.status(500).send(err);
   		//res.json(result);
 
-  		//if empty return 404 error
+  		//if empty return 404 error   TODO
 
   		if (req.query.verification_code !== result.token.verifyToken) return res.status(404).send({ error: 'Invalid token' });
 
@@ -104,9 +103,30 @@ app.post('/login', function (req, res) {
     })(req, res);
 });
 
-//To be used for RESEND verification email
-//refreshVerifyCode
-//Make sure its protected by JWT
+//Endpoint for resending verification email (generating a new verification code)
+//http://localhost:8080/refreshVerifyAccount?client_id=cd2b7c19c9734a2ab98dc251868d7724
+app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }), (req, res) => {
+		db.collection('unverified').findOne({ "_id": ObjectId(req.query.client_id) }, function (err, result) { 
+		if (err) return res.status(500).send(err);
+  		//res.json(result);
+  		//if empty return 404 error   TODO
+
+  		//generate a new token using user object
+  		var user = new User(result.email);
+  		var newVerifyToken = user.createVerifyToken();
+
+  		//update it in the unverified collection
+  		collection.update({"_id": ObjectID(req.query.client_id)}, {$set:{"token": newVerifyToken}}, function(err, result){
+		    if (err) console.log('Error updating object: ' + err);
+		});
+
+  		//Send email
+
+  		//return response with the newly generated verify token
+  		return res.json({verifyToken: newVerifyToken.verifyToken});
+	}); 
+});
+
 
 //POST ENDPOINTS
 

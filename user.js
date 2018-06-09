@@ -62,6 +62,8 @@ class User {
 			expires: expiry
 		};
 
+		this.token = verifyToken;
+
 		return verifyToken;
 	}
 
