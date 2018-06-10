@@ -88,10 +88,7 @@ app.post('/login', function (req, res) {
           console.log(err);
           return res.sendStatus(404);
         }
-        if (!user) {
-        	console.log('here2');
-          return res.status(401).send(info);
-        }
+        if (!user) return res.status(401).send(info);
 
         //user validated in passport.js (since user object was returned) - return token
         var userToken = user.createJWT();
