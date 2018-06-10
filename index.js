@@ -49,8 +49,8 @@ app.post('/registerAccount', (req, res) => {
 
 	db.collection('unverified').save(user, (err, result) => {
 		if (err) return console.log(err);
-		console.log(result.email);
-		return res.json({client_id: result._id, verification_code: user.token.verifyToken});
+		//this type of result object with ops is only returned on an insert
+		return res.json({client_id: result.ops[0]._id, verification_code: user.token.verifyToken});
 	});   
 
 	//send email
