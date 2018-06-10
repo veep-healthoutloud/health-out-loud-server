@@ -18,19 +18,19 @@ module.exports = {
 		}); 
 	},
 
-	emailExists: function(clientEmail) {
+	emailExists: function(clientEmail, callback) {
 		module.exports.checkIfQueryExists("user", {email: clientEmail}, function(userExists) {
 		    if(userExists) {
-		    	return true;
+		    	callback(true);
 		    }
 		    else {
 		    	//Check unverified collection for the email
 		    	module.exports.checkIfQueryExists("unverified", {email: clientEmail}, function(isNotVerified) {
 				    if(isNotVerified) { //The email exists as an unverified user
-				    	return true;
+				    	callback(true);
 				    }
 				    else { //Email does not exist in either user collection or unverified collection
-				    	return false;
+				    	callback(false);
 				    }
 				});
 		    }

@@ -42,21 +42,25 @@ app.post('/registerAccount', (req, res) => {
 	if (!user.isValidEmail(req.body.email)) return res.status(400).send({ error: 'Invalid email' });
 	if (!user.isValidPassword(req.body.password)) return res.status(400).send({ error: 'Invalid password' });
 
-	//Check if email already exists
-	//if (emailExists(req.body.email)) return res.status(400).send({ error: 'Email already exists' });
-	//console.log(dbUtils.emailExists("test@utoronto.ca"));
-	
-	//Save user to unverified collection
-	user.setPassword(req.body.password); //salt and hash
-	user.createVerifyToken();
+	//Check if email already exists, has a callback parameter so server waits for its result
+	dbUtils.emailExists(req.body.email, function(emailExists) { //emailExists variable is returned by callback in db_utils
+		if (emailExists) {
+			return res.status(400).send({ error: 'Email already exists' });
+		}
+		else {
+			//Save user to unverified collection
+			user.setPassword(req.body.password); //salt and hash
+			user.createVerifyToken();
 
-	db.collection('unverified').save(user, (err, result) => {
-		if (err) return console.log(err);
-		//this type of result object with ops is only returned on an insert
-		return res.json({client_id: result.ops[0]._id, verification_code: user.token.verifyToken});
-	});   
+			db.collection('unverified').save(user, (err, result) => {
+				if (err) return console.log(err);
+				//this type of result object with ops is only returned on an insert
+				return res.json({client_id: result.ops[0]._id, verification_code: user.token.verifyToken});
+			});   
 
-	//send email
+			//send email
+		}
+	});
 });
 
 //http://localhost:8080/verifyAccount?client_id=cd2b7c19c9734a2ab98dc251868d7724&verification_code=fdca81bae49e43a8b20493fc5ee29052
