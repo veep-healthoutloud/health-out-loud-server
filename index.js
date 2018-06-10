@@ -41,25 +41,21 @@ app.post('/registerAccount', (req, res) => {
 	if (!user.isValidPassword(req.body.password)) return res.status(400).send({ error: 'Invalid password' });
 
 	//Check if email already exists
-  	db.collection('user').count({ email: req.body.email }, function (err, count){ 
-  		if (err) return console.log(err);
+	if (emailExists(req.body.email)) return res.status(400).send({ error: 'Email already exists' });
+	
+	//Save user to unverified collection
+	user.setPassword(req.body.password); //salt and hash
+	user.createVerifyToken();
 
-    	if(count > 0) {
-        	return res.status(400).send({ error: 'Email already exists' });
-    	}
-    	else { //Save user object to DB
-		 	user.setPassword(req.body.password); //salt and hash
+	db.collection('unverified').save(user, (err, result) => {
+		if (err) return console.log(err);
+		res.sendStatus(200);
+		return res.json({client_id: result._id, verification_code: user.token});
+	});   
 
-			db.collection('user').save(user, (err, result) => {
-				if (err) return console.log(err);
-				res.sendStatus(200);
-			});   		
-    	}
-	}); 
-
+	//send email
 });
 
-//req.query.breed
 //http://localhost:8080/verifyAccount?client_id=cd2b7c19c9734a2ab98dc251868d7724&verification_code=fdca81bae49e43a8b20493fc5ee29052
 // Verify a user through token link received by email
 app.get('/verifyAccount', (req, res) => {
@@ -181,12 +177,18 @@ app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) =
 	});
 });
 
-// TODO: handle the case where somehow a request is sent but the database is down (and by extension the server is down	)
+//Returns True if email exists in user or unverified collections
+function emailExists(clientEmail) {
+	var emailCount = 0;
+  	db.collection('user').count({ email: clientEmail }, function (err, count){ 
+  		if (err) return console.log(err);
+    	emailCount += count;
+	}); 
 
-// NOTES (Refer to here if there's something that applies to a lot of code but isn't commented)
+	db.collection('unverified').count({ email: clientEmail }, function (err, count){ 
+  		if (err) return console.log(err);
+    	emailCount += count;
+	}); 
 
-// LAMBDAS: Lambdas are anonymous functions that are used once and then (presumably) discarded from memory
-// they are initialized using (param1, param2, ... , paramN) => {// function definition} and are equivalent to
-// function (param1, param2, ... , paramN) {// do stuff}
-
-// Logging Errors: If any of your callback functions (lambdas) have an error, return immediately and log the error
+	return emailCount > 0;
+}
