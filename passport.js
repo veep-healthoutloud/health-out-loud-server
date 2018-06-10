@@ -20,6 +20,13 @@ passport.use('local', new LocalStrategy({
         session: false
     }, 
     function (email, password, done) {
+    	//Make sure user is verified, unverified users must not get a JWT
+	  	db.collection('unverified').count({ email: email }, function (err, count){ 
+	    	if(count > 0) {
+	        	return done(null, false, {error: 'User is unverified'});
+	    	}
+		}); 
+
 		db.collection('user').findOne({ email: email }, function (err, result) { 
 			if (!result) {
 				return done(null, false, {error: 'Incorrect email or password.'}); //User doesnt exist
@@ -33,18 +40,9 @@ passport.use('local', new LocalStrategy({
 				return done(null, false, {error: 'Incorrect email or password.'});
 			}
 
-			//Make sure user is verified, unverified users must not get a JWT
-		  	db.collection('unverified').count({ email: req.body.email }, function (err, count){ 
-		  		if (err) return console.log(err);
-
-		    	if(count > 0) {
-		        	return res.status(404).send({ error: 'User is unverified' });
-		    	}
-			}); 
-			
 			//Password valid so return user object
 			return done(null, user, {success: 'Logged In Successfully'});	
-	});  
+		});  
     }
 ));
 

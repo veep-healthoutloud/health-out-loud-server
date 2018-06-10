@@ -41,7 +41,7 @@ app.post('/registerAccount', (req, res) => {
 	if (!user.isValidPassword(req.body.password)) return res.status(400).send({ error: 'Invalid password' });
 
 	//Check if email already exists
-	if (emailExists(req.body.email)) return res.status(400).send({ error: 'Email already exists' });
+	//if (emailExists(req.body.email)) return res.status(400).send({ error: 'Email already exists' });
 	
 	//Save user to unverified collection
 	user.setPassword(req.body.password); //salt and hash
@@ -49,8 +49,8 @@ app.post('/registerAccount', (req, res) => {
 
 	db.collection('unverified').save(user, (err, result) => {
 		if (err) return console.log(err);
-		res.sendStatus(200);
-		return res.json({client_id: result._id, verification_code: user.token});
+		console.log(result.email);
+		return res.json({client_id: result._id, verification_code: user.token.verifyToken});
 	});   
 
 	//send email
@@ -60,11 +60,9 @@ app.post('/registerAccount', (req, res) => {
 // Verify a user through token link received by email
 app.get('/verifyAccount', (req, res) => {
 	//Find the user that needs to be verified by looking for token
-	db.collection('unverified').findOne({ "_id": ObjectId(req.query.client_id) }, function (err, result) { 
+	db.collection('unverified').findOne({ "_id": ObjectID(req.query.client_id) }, function (err, result) { 
 		if (err) return res.status(500).send(err);
-  		//res.json(result);
-
-  		//if empty return 404 error   TODO
+  		if (!result) return res.status(404).send({ error: 'User does not exist' });
 
   		if (req.query.verification_code !== result.token.verifyToken) return res.status(404).send({ error: 'Invalid token' });
 
@@ -79,6 +77,8 @@ app.get('/verifyAccount', (req, res) => {
   		db.collection('user').insert(result);
   		db.collection('unverified').remove(result);
 
+  		return res.sendStatus(200);
+
 	}); 
 });
 
@@ -89,6 +89,7 @@ app.post('/login', function (req, res) {
           return res.sendStatus(404);
         }
         if (!user) {
+        	console.log('here2');
           return res.status(401).send(info);
         }
 
@@ -102,17 +103,16 @@ app.post('/login', function (req, res) {
 //Endpoint for resending verification email (generating a new verification code)
 //http://localhost:8080/refreshVerifyAccount?client_id=cd2b7c19c9734a2ab98dc251868d7724
 app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }), (req, res) => {
-		db.collection('unverified').findOne({ "_id": ObjectId(req.query.client_id) }, function (err, result) { 
+		db.collection('unverified').findOne({ "_id": ObjectID(req.query.client_id) }, function (err, result) { 
 		if (err) return res.status(500).send(err);
-  		//res.json(result);
-  		//if empty return 404 error   TODO
+  		if (!result) return res.status(404).send({ error: 'User does not exist' });
 
   		//generate a new token using user object
   		var user = new User(result.email);
   		var newVerifyToken = user.createVerifyToken();
 
   		//update it in the unverified collection
-  		collection.update({"_id": ObjectID(req.query.client_id)}, {$set:{"token": newVerifyToken}}, function(err, result){
+  		db.collection('unverified').update({"_id": ObjectID(req.query.client_id)}, {$set:{"token": newVerifyToken}}, function(err, result){
 		    if (err) console.log('Error updating object: ' + err);
 		});
 
@@ -179,16 +179,22 @@ app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) =
 
 //Returns True if email exists in user or unverified collections
 function emailExists(clientEmail) {
-	var emailCount = 0;
+	//Note: DB calls are asynch, so nest to wait for one
   	db.collection('user').count({ email: clientEmail }, function (err, count){ 
   		if (err) return console.log(err);
-    	emailCount += count;
+  		if (count > 0) {
+  			return true;
+  		}
+  		else {
+  				db.collection('unverified').count({ email: clientEmail }, function (err, count){ 
+			  		if (err) return console.log(err);
+					if (count > 0) {
+						return true;
+					}
+					else {
+						return false;
+					}
+				}); 
+  		}
 	}); 
-
-	db.collection('unverified').count({ email: clientEmail }, function (err, count){ 
-  		if (err) return console.log(err);
-    	emailCount += count;
-	}); 
-
-	return emailCount > 0;
 }
