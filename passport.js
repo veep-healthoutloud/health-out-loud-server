@@ -15,6 +15,8 @@ dbConnection.connectToServer(function(err) {
 	db = dbConnection.getDb();
 });
 
+var dbUtils = require('./db_utils');
+
 passport.use('local', new LocalStrategy({
         usernameField: 'email',
         passwordField: 'password',
@@ -22,7 +24,7 @@ passport.use('local', new LocalStrategy({
     }, 
     function (email, password, done) {
     	//Check if user is in unverified collection, otherwise find the user set credentials
-		checkIfQueryExists(db, "unverified", {email: email}, function(isNotVerified) {
+		dbUtils.checkIfQueryExists("unverified", {email: email}, function(isNotVerified) {
 		    if(isNotVerified) { //return with error since unverified users must not get a JWT
 		    	return done(null, false, {error: 'User is unverified'});
 		    }
@@ -58,12 +60,3 @@ passport.use(new JWTStrategy({
     	return done(null, user);
     }
 ));
-
-//For example check if a user exists in unverified collection to determine if user is verified or not
-//Has a callback (onDone) so you can check result and then synchrously execute another db call
-//query variable is {param: value}
-const checkIfQueryExists = function(dbConnection, collectionName, query, onDone) {
-	db.collection(collectionName).count(query, function (err, count){ 
-    	if (onDone) onDone((count > 0)); //Call the callback with results of the exists check
-	}); 
-};

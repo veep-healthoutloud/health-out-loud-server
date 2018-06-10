@@ -27,6 +27,8 @@ dbConnection.connectToServer(function(err) {
 	});
 });
 
+var dbUtils = require('./db_utils');
+
 // USER ENDPOINTS
 
 //Registration: Add a new user to db
@@ -42,6 +44,7 @@ app.post('/registerAccount', (req, res) => {
 
 	//Check if email already exists
 	//if (emailExists(req.body.email)) return res.status(400).send({ error: 'Email already exists' });
+	//console.log(dbUtils.emailExists("test@utoronto.ca"));
 	
 	//Save user to unverified collection
 	user.setPassword(req.body.password); //salt and hash
@@ -173,25 +176,3 @@ app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) =
   		res.json(result);
 	});
 });
-
-//Returns True if email exists in user or unverified collections
-function emailExists(clientEmail) {
-	//Note: DB calls are asynch, so nest to wait for one
-  	db.collection('user').count({ email: clientEmail }, function (err, count){ 
-  		if (err) return console.log(err);
-  		if (count > 0) {
-  			return true;
-  		}
-  		else {
-  				db.collection('unverified').count({ email: clientEmail }, function (err, count){ 
-			  		if (err) return console.log(err);
-					if (count > 0) {
-						return true;
-					}
-					else {
-						return false;
-					}
-				}); 
-  		}
-	}); 
-}
