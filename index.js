@@ -17,7 +17,7 @@ const port = process.env.PORT || 3000;
 var dbConnection = require('./db_connection');
 var db;
 dbConnection.connectToServer(function(err) {
-	if (err) return console.log(err);
+	if (err) return console.log({error: true, message: err});
 
 	db = dbConnection.getDb();
 
@@ -55,7 +55,7 @@ app.post('/registerAccount', (req, res) => {
 			db.collection('unverified').save(user, (err, result) => {
 				if (err) {
 					console.log(err);
-					return res.status(500).send(err);
+					return res.status(500).send({error: true, message: err});
 				}
 				//this type of result object with ops is only returned on an insert
 				return res.json({error: false, client_id: result.ops[0]._id, verification_code: user.token.verifyToken});
@@ -73,7 +73,7 @@ app.get('/verifyAccount', (req, res) => {
 	db.collection('unverified').findOne({ "_id": ObjectID(req.query.clientID) }, function (err, result) { 
 		if (err) {
 			console.log(err);
-			return res.status(500).send(err);
+			return res.status(500).send({error: true, message: err});
 		}
   		if (!result) return res.status(404).send({ error: true, message: 'User does not exist or already verified' });
 
@@ -98,14 +98,12 @@ app.post('/login', (req, res) => {
     passport.authenticate('local', (err, user, info) => {
 		if (err) {
 			console.log(err);
-			return res.status(500).send(err);
+			return res.status(500).send({error: true, message: err});
 		}
-        if (!user) return res.status(401).send(info);
 
         //user validated in passport.js (since user object was returned) - return token
         var userToken = user.createJWT();
         return res.json({error: false, token: userToken});
-
     });
 });
 
@@ -115,7 +113,7 @@ app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }
 		db.collection('unverified').findOne({ "_id": ObjectID(req.query.client_id) }, function (err, result) { 
 		if (err) {
 			console.log(err);
-			return res.status(500).send(err);
+			return res.status(500).send({error: true, message: err});
 		}
   		if (!result) return res.status(404).send({ error: true, message: 'User does not exist' });
 
@@ -127,7 +125,7 @@ app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }
   		db.collection('unverified').update({"_id": ObjectID(req.query.client_id)}, {$set:{"token": newVerifyToken}}, function(err, result){
 		    if (err) {
 		    	console.log('Error updating object: ' + err);
-		    	return res.status(500).send(err);
+		    	return res.status(500).send({error: true, message: err});
 		    }
 		});
 
@@ -138,27 +136,44 @@ app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }
 	}); 
 });
 
-
-//req.body.email
-//req.body.oldPassword
-//req.body.newPassword
+//This endpoint is for authenticated users, change password in settings menu for example.
 app.post('/changePassword', (req, res) => {
-	// Reuse local passport strategy to validate user with email and old password
+	//Since user is logged in they should have a valid JWT
+    passport.authenticate('jwt', (err, user, info) => {
+		if (err) {
+			console.log(err);
+			return res.status(500).send({error: true, message: err});
+		}
+		if (!user.email) return res.status(404).send({ error: true, message: 'User doesnt exist' }); //sanity check
 
+		db.collection('user').findOne({ email: user.email }, function (err, result) { 
+			if (err) {
+				console.log(err);
+				return done(null, false, {error: true, message: err});
+			}
+			if (!result) return res.status(404).send({ error: true, message: 'User doesnt exist' });
+	        //verify old password
+	        user.setSalt(result.salt);
+			user.setHash(result.hash);
+			if (!user.validatePassword(req.body.oldPassword)) return res.status(400).send({ error: true, message: 'Incorrect old password' });
 
-	//TODO: 
-	//Dont reuse passport local here, just do JWT, grab user email and follow similar stuff that passport local does
-	//dont need the unverified db call for example
+			//Make sure old and new passwords match
+			if (req.body.oldPassword !== req.body.newPassword) return res.status(400).send({ error: true, message: 'Passwords do not match' });
+			//Make sure new password is a valid one
+			if (!user.isValidPassword(req.body.newPassword)) return res.status(400).send({ error: true, message: 'Invalid new password' });
 
-	//Old password matches so now check if new password is valid
-	//if (!user.isValidPassword(req.body.newPassword)) return res.status(400).send({ error: 'Invalid password' });
-
-	//Update user collection with new salt and hash to reflect the new password
-	//user.setPassword(req.body.password); //salt and hash
-
-	//return success
-
-
+			//Update user collection with new salt/hash to reflect the new password
+			user.setPassword(req.body.password);
+			//save to user collection
+			db.collection('user').save(user, (err, result) => {
+				if (err) {
+					console.log(err);
+					return res.status(500).send({error: true, message: err});
+				}
+				return res.status(200).send({ error: false, message: 'Password successfully changed' });
+			});   
+		});  
+    });
 });
 
 //Maybe two endpoints instead
@@ -177,7 +192,7 @@ app.post('/post', (req, res) => {
     passport.authenticate('jwt', (err, user, info) => {
 		if (err) {
 			console.log(err);
-			return res.status(500).send(err);
+			return res.status(500).send({error: true, message: err});
 		}
 
         //Request must supply post text and a feelings array
@@ -191,7 +206,7 @@ app.post('/post', (req, res) => {
 		db.collection('post').save(req.body, (err, result) => {
 			if (err) {
 				console.log(err);
-				return res.status(500).send(err);
+				return res.status(500).send({error: true, message: err});
 			}
 	  		res.json({error: false, id: result._id});
 	  	});
@@ -203,7 +218,7 @@ app.get('/posts/feeling/:feeling', passport.authenticate('jwt', { session: false
 	db.collection('post').find({feelings: req.params.feeling}).toArray(function(err, result) {
   		if (err) {
 			console.log(err);
-			return res.status(500).send(err);
+			return res.status(500).send({error: true, message: err});
 		}
   		res.json(result);
 	});
@@ -214,7 +229,7 @@ app.get('/posts/user/:client_id', passport.authenticate('jwt', { session: false 
 	db.collection('post').find({ "_id": ObjectID(req.query.client_id) }).toArray(function(err, result) {
 		if (err) {
 			console.log(err);
-			return res.status(500).send(err);
+			return res.status(500).send({error: true, message: err});
 		}
   		res.json(result);
 	});
@@ -225,7 +240,7 @@ app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) =
   	db.collection('post').find().toArray(function(err, result) {
 		if (err) {
 			console.log(err);
-			return res.status(500).send(err);
+			return res.status(500).send({error: true, message: err});
 		}
   		res.json(result);
 	});
