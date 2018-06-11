@@ -34,7 +34,7 @@ var dbUtils = require('./db_utils');
 //Registration: Add a new user to db
 app.post('/registerAccount', (req, res) => {
 	// Only write to DB if email and password are provided
-	if (!(req.body.email && req.body.password)) return res.status(400).send({ error: 'Missing parameters' });
+	if (!(req.body.email && req.body.password)) return res.status(400).send({ error: true, message: 'Missing parameters' });
 
 	// Create a new user
 	var user = new User(req.body.email);
@@ -53,7 +53,10 @@ app.post('/registerAccount', (req, res) => {
 			user.createVerifyToken();
 
 			db.collection('unverified').save(user, (err, result) => {
-				if (err) return console.log(err);
+				if (err) {
+					console.log(err);
+					return res.status(500).send(err);
+				}
 				//this type of result object with ops is only returned on an insert
 				return res.json({client_id: result.ops[0]._id, verification_code: user.token.verifyToken});
 			});   
@@ -68,7 +71,10 @@ app.post('/registerAccount', (req, res) => {
 app.get('/verifyAccount', (req, res) => {
 	//Find the user that needs to be verified by looking for token
 	db.collection('unverified').findOne({ "_id": ObjectID(req.query.client_id) }, function (err, result) { 
-		if (err) return res.status(500).send(err);
+		if (err) {
+			console.log(err);
+			return res.status(500).send(err);
+		}
   		if (!result) return res.status(404).send({ error: 'User does not exist' });
 
   		if (req.query.verification_code !== result.token.verifyToken) return res.status(404).send({ error: 'Invalid token' });
@@ -91,10 +97,10 @@ app.get('/verifyAccount', (req, res) => {
 
 app.post('/login', function (req, res) {
     passport.authenticate('local', (err, user, info) => {
-        if (err) {
-          console.log(err);
-          return res.sendStatus(404);
-        }
+		if (err) {
+			console.log(err);
+			return res.status(500).send(err);
+		}
         if (!user) return res.status(401).send(info);
 
         //user validated in passport.js (since user object was returned) - return token
@@ -108,7 +114,10 @@ app.post('/login', function (req, res) {
 //http://localhost:8080/refreshVerifyAccount?client_id=cd2b7c19c9734a2ab98dc251868d7724
 app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }), (req, res) => {
 		db.collection('unverified').findOne({ "_id": ObjectID(req.query.client_id) }, function (err, result) { 
-		if (err) return res.status(500).send(err);
+		if (err) {
+			console.log(err);
+			return res.status(500).send(err);
+		}
   		if (!result) return res.status(404).send({ error: 'User does not exist' });
 
   		//generate a new token using user object
@@ -132,10 +141,10 @@ app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }
 
 app.post('/post', function (req, res) {
     passport.authenticate('jwt', (err, user, info) => {
-        if (err) {
-          console.log(err);
-          return res.sendStatus(404);
-        }
+		if (err) {
+			console.log(err);
+			return res.status(500).send(err);
+		}
 
         //Request must supply post text and a feelings array
 		if (!(req.body.postBody && req.body.feelings)) return res.status(400).send({ error: 'Missing parameters' });
@@ -146,21 +155,23 @@ app.post('/post', function (req, res) {
 
 		//Create new post
 		db.collection('post').save(req.body, (err, result) => {
-		    if(err) {
-	    		response = {error: "Error adding data"};
-	  		} 
-	  		else {
-	    		response = {success: "Data added", id: result._id};
-	  		}
-	  		res.json(response);
-	  	})
+			if (err) {
+				console.log(err);
+				return res.status(500).send(err);
+			}
+
+	  		res.json({success: "Data added", id: result._id});
+	  	});
     })(req, res);
 });
 
 // Get all posts by a feeling
 app.get('/posts/feeling/:feeling', passport.authenticate('jwt', { session: false }), (req, res) => {
 	db.collection('post').find({feelings: req.params.feeling}).toArray(function(err, result) {
-  		if (err) return res.status(500).send(err);
+  		if (err) {
+			console.log(err);
+			return res.status(500).send(err);
+		}
   		res.json(result);
 	});
 });
@@ -168,7 +179,10 @@ app.get('/posts/feeling/:feeling', passport.authenticate('jwt', { session: false
 // Get all posts by a user
 app.get('/posts/user/:email', passport.authenticate('jwt', { session: false }), (req, res) => {
 	db.collection('post').find({author: req.params.email}).toArray(function(err, result) {
-  		if (err) return res.status(500).send(err);
+		if (err) {
+			console.log(err);
+			return res.status(500).send(err);
+		}
   		res.json(result);
 	});
 });
@@ -176,7 +190,10 @@ app.get('/posts/user/:email', passport.authenticate('jwt', { session: false }), 
 // Get all posts
 app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
   	db.collection('post').find().toArray(function(err, result) {
-  		if (err) return res.status(500).send(err);
+		if (err) {
+			console.log(err);
+			return res.status(500).send(err);
+		}
   		res.json(result);
 	});
 });

@@ -30,9 +30,12 @@ passport.use('local', new LocalStrategy({
 		    }
 		    else { //Find the user
 		    	db.collection('user').findOne({ email: email }, function (err, result) { 
-					if (!result) {
-						return done(null, false, {error: 'Incorrect email or password.'}); //User doesnt exist
-					}
+		    		if (err) {
+		    			console.log(err);
+		    			return done(null, false, {error: err});
+		    		}
+					if (!result) return done(null, false, {error: 'Incorrect email or password.'}); //User doesnt exist
+				
 					//User exists so validate password using salt/hash
 					var user = new User(result.email);
 					user.setSalt(result.salt);
