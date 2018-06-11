@@ -69,7 +69,7 @@ app.post('/registerAccount', (req, res) => {
 //http://localhost:8080/verifyAccount?clientID=cd2b7c19c9734a2ab98dc251868d7724&verificationCode=fdca81bae49e43a8b20493fc5ee29052
 // Verify a user through token link received by email
 app.get('/verifyAccount', (req, res) => {
-	//Find the user that needs to be verified by looking for token
+	//Find the user that needs to be verified
 	db.collection('unverified').findOne({ "_id": ObjectID(req.query.clientID) }, function (err, result) { 
 		if (err) {
 			console.log(err);
@@ -81,7 +81,6 @@ app.get('/verifyAccount', (req, res) => {
 
   		//Tokens are the same now make sure token is not expired
   		var user = new User(result.email);
-  		//user.setToken(result.token); //Dont need this ?
   		if (!user.isValidToken(result.token)) return res.status(400).send({ error: true, message: 'Expired token' });
 
   		//Token is valid so move to user collection since the user has now been validated
@@ -163,7 +162,7 @@ app.post('/changePassword', (req, res) => {
 			if (!user.isValidPassword(req.body.newPassword)) return res.status(400).send({ error: true, message: 'Invalid new password' });
 
 			//Update user collection with new salt/hash to reflect the new password
-			user.setPassword(req.body.password);
+			user.setPassword(req.body.newPassword);
 			//save to user collection
 			db.collection('user').save(user, (err, result) => {
 				if (err) {
@@ -176,15 +175,62 @@ app.post('/changePassword', (req, res) => {
     });
 });
 
-//Maybe two endpoints instead
-//forgotPassword for non authenticated users, they need to supply email and receive an email with a password reset token and etc
-//here I can also check if they are verified or not
+//endpoint to generate password reset token and send email to user
+app.get('/passwordResetToken', (req, res) => {
+	db.collection('user').findOne({ "email": req.query.email }, function (err, result) { 
+		if (err) {
+			console.log(err);
+			return res.status(500).send({error: true, message: err});
+		}
+  		if (!result) return res.status(404).send({ error: true, message: 'User does not exist' });
 
-//changePassword endpoint, basically above but we dont need email since they are already logged in just pass JWT and extract email like that. Then verify
-//using the old and new passwords
-//this is the case where the user is already authenticated
+  		//generate a new token using user object
+  		var user = new User(result.email);
+  		var newPasswordResetToken = user.createPasswordResetToken();
 
-//in the post request the email/id can go as a :param and the passwords in the body, or just put everything in the body to be more secure
+  		//update it in the unverified collection
+  		db.collection('user').update({ email: req.query.email }, {$set:{"token": newPasswordResetToken}}, function(err, result){
+		    if (err) {
+		    	console.log('Error updating object: ' + err);
+		    	return res.status(500).send({error: true, message: err});
+		    }
+		});
+
+  		//Send email with URL to reset password
+
+  		//return response with the newly generated verify token
+  		return res.json({error: false, verifyToken: newPasswordResetToken.passwordResetToken});
+	}); 
+});
+
+//Change password for non-authenticated users, since they arent logged in use a password reset token + email to reset password
+app.post('/forgotPassword', (req, res) => {
+	db.collection('user').findOne({ email: req.body.email }, function (err, result) { 
+		if (err) {
+			console.log(err);
+			return res.status(500).send({error: true, message: err});
+		}
+  		if (!result) return res.status(404).send({ error: true, message: 'User does not exist' });
+
+  		if (req.body.passwordResetToken !== result.token.passwordResetToken) return res.status(404).send({ error: true, message: 'Invalid token' });
+
+  		//Tokens are the same now make sure token is not expired
+  		var user = new User(result.email);
+  		if (!user.isValidToken(result.token)) return res.status(400).send({ error: true, message: 'Expired token' });
+
+  		//Update with new password
+		if (!user.isValidPassword(req.body.newPassword)) return res.status(400).send({ error: true, message: 'Invalid new password' });
+		user.setPassword(req.body.newPassword);
+		//save to user collection
+		db.collection('user').save(user, (err, result) => {
+			if (err) {
+				console.log(err);
+				return res.status(500).send({error: true, message: err});
+			}
+			return res.status(200).send({ error: false, message: 'Password reset' });
+		});   
+	}); 
+});
 
 //POST ENDPOINTS
 
@@ -245,3 +291,9 @@ app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) =
   		res.json(result);
 	});
 });
+
+/* Other things to add
+ * - Limit number of verification/reset tokens
+ * - Check user is on same ip when generating token
+ * - token should be hashed
+ */

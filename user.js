@@ -74,6 +74,22 @@ class User {
 		return verifyToken;
 	}
 
+	createPasswordResetToken() {
+		var randToken = crypto.randomBytes(16).toString('hex');
+		var expiry = new Date();
+		expiry.setHours(expiry.getHours() + 1); //Set expiry 8 hours in the future
+
+		//Random 16 character token with expiry
+		const passwordResetToken = {
+			passwordResetToken: randToken,
+			expires: expiry
+		};
+
+		this.token = passwordResetToken;
+
+		return passwordResetToken;
+	}
+
 	createJWT() {
 		const jwtToken = jwt.sign({
 			email: this.email
