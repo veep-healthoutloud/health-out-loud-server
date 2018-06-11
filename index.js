@@ -58,7 +58,7 @@ app.post('/registerAccount', (req, res) => {
 					return res.status(500).send({error: true, message: err});
 				}
 				//this type of result object with ops is only returned on an insert
-				return res.json({error: false, client_id: result.ops[0]._id, verification_code: user.token.verifyToken});
+				return res.json({error: false, clientID: result.ops[0]._id, verificationCode: user.token.verifyToken});
 			});   
 
 			//send email
@@ -66,7 +66,6 @@ app.post('/registerAccount', (req, res) => {
 	});
 });
 
-//http://localhost:8080/verifyAccount?clientID=cd2b7c19c9734a2ab98dc251868d7724&verificationCode=fdca81bae49e43a8b20493fc5ee29052
 // Verify a user through token link received by email
 app.get('/verifyAccount', (req, res) => {
 	//Find the user that needs to be verified
@@ -111,7 +110,6 @@ app.post('/login', function (req, res) {
 });
 
 //Endpoint for resending verification email (generating a new verification code)
-//http://localhost:8080/refreshVerifyAccount?client_id=cd2b7c19c9734a2ab98dc251868d7724
 app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }), (req, res) => {
 		db.collection('unverified').findOne({ "_id": ObjectID(req.query.client_id) }, function (err, result) { 
 		if (err) {
@@ -273,8 +271,8 @@ app.get('/posts/feeling/:feeling', passport.authenticate('jwt', { session: false
 });
 
 // Get all posts by a user
-app.get('/posts/user/:client_id', passport.authenticate('jwt', { session: false }), (req, res) => {
-	db.collection('post').find({ "_id": ObjectID(req.query.client_id) }).toArray(function(err, result) {
+app.get('/posts/user/:clientID', passport.authenticate('jwt', { session: false }), (req, res) => {
+	db.collection('post').find({ "_id": ObjectID(req.query.clientID) }).toArray(function(err, result) {
 		if (err) {
 			console.log(err);
 			return res.status(500).send({error: true, message: err});

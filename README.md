@@ -8,7 +8,7 @@ Test1234
 Adds a new User to the database.
 
 * **URL**
-/user
+/registerAccount
 
 * **Method:**
 `POST`
@@ -25,16 +25,16 @@ None.
 * **Success Response:**
 
 * **Code:** 200 <br />
-**Content:** `OK`
+**Content:** `{ error : false, clientID: <>, verificationCode: <> }`
 
 * **Error Response:**
 
 * **Code:** 400 BAD REQUEST <br />
 **Content:** 
-`{ error : "Missing parameters" }`
-`{ error : "Invalid email" }`
-`{ error : "Invalid password" }`
-`{ error : "Email already exists" }`
+`{ error : true, message: "Missing parameters" }`
+`{ error : true, message: "Invalid email" }`
+`{ error : true, message: "Invalid password" }`
+`{ error : true, message: "Email already exists" }`
 
 **User Login**
 ----
@@ -58,20 +58,194 @@ None.
 * **Success Response:**
 
 * **Code:** 200 <br />
-**Content:** `{ token : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QxQG1haWwudXRvcm9udG8uY2EiLCJpYXQiOjE1MjgzMDUzNzUsImV4cCI6MTUyODMxMjU3NX0.7_qDXtw8qlnezoTGvFaA768ZxW4Qr2JhVYlHXyrPuWk" }`
+**Content:** `{ error: false, token : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QxQG1haWwudXRvcm9udG8uY2EiLCJpYXQiOjE1MjgzMDUzNzUsImV4cCI6MTUyODMxMjU3NX0.7_qDXtw8qlnezoTGvFaA768ZxW4Qr2JhVYlHXyrPuWk" }`
 
 * **Error Response:**
 
-* **Code:** 404 NOT FOUND <br />
-**Content:** <passport error>
+* **Code:** 500<br />
+**Content:** `{ error : true, message: <err> }`
 
 * **Code:** 401 UNAUTHORIZED <br />
 **Content:** `{ error : "Incorrect email or password." }`
+
+**Email Verification**
+----
+Verify a user using a verification token with an expiry. This token is obtained on /registerAccount
+
+* **URL**
+/verifyAccount
+
+* **Method:**
+`GET`
+
+*  **URL Params**
+**Required:**
+clientID
+verificationCode
+
+* **Body Params**
+None.
+
+* **Success Response:**
+
+* **Code:** 200 <br />
+**Content:** `{ error: false, message : "Account verified" }`
+
+* **Error Response:**
+
+* **Code:** 500<br />
+**Content:** `{ error : true, message: <err> }`
+
+* **Code:** 400 <br />
+**Content:** `{ error : true, message: "Expired token." }`
+
+* **Code:** 404 NOT FOUND <br />
+**Content:** `{ error : true, message: "Invalid token/user does not exist" }`
+
+* **Example:**
+`verifyAccount?clientID=cd2b7c19c9734a2ab98dc251868d7724&verificationCode=fdca81bae49e43a8b20493fc5ee29052`
+
+**Start password reset**
+----
+Forgot a password option for a non-authenticated user, will involve email.
+
+* **URL**
+/passwordResetToken
+
+* **Method:**
+`GET`
+
+*  **URL Params**
+**Required:**
+email
+
+* **Body Params**
+None.
+
+* **Success Response:**
+
+* **Code:** 200 <br />
+**Content:** `{ error: false, passwordResetToken : <> }`
+
+* **Error Response:**
+
+* **Code:** 500<br />
+**Content:** `{ error : true, message: <err> }`
+
+* **Code:** 404 NOT FOUND <br />
+**Content:** `{ error : true, message: "Invalid token/user does not exist" }`
+
+* **Example:**
+`passwordResetToken?email=test@mail.utoronto.ca`
+
+**Forgot Password**
+----
+After /passwordResetToken is requested use this token and email to set a new password. For non-authenticated users.
+
+* **URL**
+/forgotPassword
+
+* **Method:**
+`POST`
+
+*  **URL Params**
+None.
+
+* **Body Params**
+
+**Required:**
+`email: <email>`
+`passwordResetToken: <token>`
+`newPassword: <newPassword>`
+
+* **Success Response:**
+
+* **Code:** 200 <br />
+**Content:** `{ error: false, message : "Password reset" }`
+
+* **Error Response:**
+
+* **Code:** 500<br />
+**Content:** `{ error : true, message: <err> }`
+
+* **Code:** 404 NOT FOUND <br />
+**Content:** `{ error : true, message: "Invalid token" }`
+
+* **Code:** 400  <br />
+**Content:** `{ error : true, message: "Expired token / Invalid New Password" }`
 
 
 **The following endpoints now require a Bearer token obtained from /login**
 In the header of any request you must have
 `Authorization : Bearer <token_string>`
+
+**Change Password**
+----
+Change password for an authenticated (already logged in) user (using JWT).
+
+* **URL**
+/changePassword
+
+* **Method:**
+`POST`
+
+*  **URL Params**
+None.
+
+* **Body Params**
+
+**Required:**
+`oldPassword`
+`newPassword`
+
+* **Success Response:**
+
+* **Code:** 200 <br />
+**Content:** `{ error: false, message : "Password successfully changed" }`
+
+* **Error Response:**
+
+* **Code:** 500<br />
+**Content:** `{ error : true, message: <err> }`
+
+* **Code:** 404 NOT FOUND <br />
+**Content:** `{ error : true, message: "User doesnt exist" }`
+
+* **Code:** 400<br />
+**Content:** `{ error : true, message: "Incorrect old password / Invalid new password" }`
+
+**Refresh/Re-send Email Verification**
+----
+Generate a new verification token.
+
+* **URL**
+/refreshVerifyAccount
+
+* **Method:**
+`GET`
+
+*  **URL Params**
+**Required:**
+
+
+* **Body Params**
+None.
+
+* **Success Response:**
+
+* **Code:** 200 <br />
+**Content:** `{ error: false, verifyToken: <> }`
+
+* **Error Response:**
+
+* **Code:** 500<br />
+**Content:** `{ error : true, message: <err> }`
+
+* **Code:** 404 NOT FOUND <br />
+**Content:** `{ error : true, message: "User does not exist" }` -> Either already verified or does not exist
+
+* **Example:**
+`refreshVerifyAccount?client_id=cd2b7c19c9734a2ab98dc251868d7724`
 
 **Create Post**
 ----
@@ -98,12 +272,15 @@ or
 * **Success Response:**
 
 * **Code:** 200 <br />
-**Content:** `{success: "Data added", id: <post_id>}`
+**Content:** `{error: false, id: <post_id>}`
 
 * **Error Response:**
 
+* **Code:** 500<br />
+**Content:** `{ error : true, message: <err> }`
+
 * **Code:** 400 BAD REQUEST <br />
-**Content:** `{ error : "Missing parameters" }`
+**Content:** `{ error : true, message: "Missing parameters" }`
 
 * **Code:** 401 UNAUTHORIZED For Invalid/Missing token
 
@@ -112,15 +289,15 @@ or
 * **URL**
 /posts - Get all posts
 /posts/feeling/:feeling  - Get all posts by a feeling
-/posts/user/:email  - Get all posts by a user (email)
+/posts/user/:clientID  - Get all posts by a user (email)
 
 * **Method:**
 `GET`
 
 *  **URL Params**
 /posts **requires no URL params**
-/:feeling ``http://localhost:3000/posts/feeling/Happy``
-/:email ``http://localhost:3000/posts/user/test1@mail.utoronto.ca``
+/:feeling ``/posts/feeling/Happy``
+/:email ``/posts/user/5b1eae6418cb8d29ef08bee7``
 
 * **Body Params**
 None.
@@ -142,7 +319,8 @@ None.
 
 * **Error Response:**
 
-* **Code:** 500 INTERNAL SERVER ERROR <br />
+* **Code:** 500<br />
+**Content:** `{ error : true, message: <err> }`
 
 * **Code:** 401 UNAUTHORIZED For Invalid/Missing token
 
