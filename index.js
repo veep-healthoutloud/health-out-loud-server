@@ -159,7 +159,6 @@ app.post('/post', function (req, res) {
 				console.log(err);
 				return res.status(500).send(err);
 			}
-
 	  		res.json({success: "Data added", id: result._id});
 	  	});
     })(req, res);
@@ -177,8 +176,8 @@ app.get('/posts/feeling/:feeling', passport.authenticate('jwt', { session: false
 });
 
 // Get all posts by a user
-app.get('/posts/user/:email', passport.authenticate('jwt', { session: false }), (req, res) => {
-	db.collection('post').find({author: req.params.email}).toArray(function(err, result) {
+app.get('/posts/user/:client_id', passport.authenticate('jwt', { session: false }), (req, res) => {
+	db.collection('post').find({ "_id": ObjectID(req.query.client_id) }).toArray(function(err, result) {
 		if (err) {
 			console.log(err);
 			return res.status(500).send(err);
