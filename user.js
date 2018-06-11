@@ -1,7 +1,8 @@
 //JS Model for User Object
 var crypto = require('crypto');
 var jwt = require('jsonwebtoken');
-var validator = require("email-validator");
+var emailValidator = require("email-validator");
+var passwordValidator = require('password-validator');
 
 class User {
 
@@ -14,13 +15,19 @@ class User {
 	}
 
 	isValidEmail(email) {
-		return validator.validate(email);
+		return emailValidator.validate(email);
 	}
 
 	isValidPassword(password) {
-		//Add more password requirements here (probably use a library here)
+		var schema = new passwordValidator();
+		schema
+		.is().min(8)                                    // Minimum length 8
+		.is().max(64)                                  // Maximum length 64
+		.has().uppercase()                              // Must have uppercase letters
+		.has().lowercase()                              // Must have lowercase letters
+		.has().digits()                                 // Must have digits
 
-		return password.length >= 6;
+		return schema.validate(password); //optional: add { list: true} to schema.validate to return an array of failed rules
 	}
 
 	//validate token by expiry

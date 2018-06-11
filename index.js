@@ -75,7 +75,7 @@ app.get('/verifyAccount', (req, res) => {
 			console.log(err);
 			return res.status(500).send(err);
 		}
-  		if (!result) return res.status(404).send({ error: 'User does not exist' });
+  		if (!result) return res.status(404).send({ error: 'User does not exist or already verified' });
 
   		if (req.query.verification_code !== result.token.verifyToken) return res.status(404).send({ error: 'Invalid token' });
 
@@ -91,7 +91,6 @@ app.get('/verifyAccount', (req, res) => {
   		db.collection('unverified').remove(result);
 
   		return res.sendStatus(200);
-
 	}); 
 });
 
