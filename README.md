@@ -1,7 +1,7 @@
 # Server for VEEP Health Out Loud
 Sample User to log in with:
-test1@mail.utoronto.ca
-test123
+test@mail.utoronto.ca
+Test1234
 
 **User Registration**
 ----

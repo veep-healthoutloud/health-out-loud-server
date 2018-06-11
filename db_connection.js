@@ -1,7 +1,7 @@
 //Module for DB connection
 var MongoClient = require('mongodb').MongoClient;
 var _db;
-const dbURI = process.env.MONGODB_URI || "mongodb://test:test@ds125068.mlab.com:25068/healthoutloud";
+const dbURI = process.env.MONGODB_URI;
 
 module.exports = {
 

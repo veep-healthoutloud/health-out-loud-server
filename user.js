@@ -61,7 +61,7 @@ class User {
 	createVerifyToken() {
 		var randToken = crypto.randomBytes(16).toString('hex');
 		var expiry = new Date();
-		expiry.setHours(expiry.getHours() + 8); //Set expiry 8 hours in the future
+		expiry.setHours(expiry.getHours() + parseInt(process.env.VERIFICATION_EXPIRY));
 
 		//Random 16 character token with expiry
 		const verifyToken = {
@@ -77,7 +77,7 @@ class User {
 	createPasswordResetToken() {
 		var randToken = crypto.randomBytes(16).toString('hex');
 		var expiry = new Date();
-		expiry.setHours(expiry.getHours() + 1); //Set expiry 8 hours in the future
+		expiry.setHours(expiry.getHours() + parseInt(process.env.PASSWORD_RESET_EXPIRY));
 
 		//Random 16 character token with expiry
 		const passwordResetToken = {
@@ -94,9 +94,9 @@ class User {
 		const jwtToken = jwt.sign({
 			email: this.email
 		},
-		'temp_secret',
+		process.env.AUTH_KEY,
 		{
-			expiresIn: '2h'
+			expiresIn: process.env.TOKEN_EXPIRY
 		});
 
 		return jwtToken;

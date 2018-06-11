@@ -93,17 +93,21 @@ app.get('/verifyAccount', (req, res) => {
 	}); 
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', function (req, res) {
     passport.authenticate('local', (err, user, info) => {
 		if (err) {
 			console.log(err);
 			return res.status(500).send({error: true, message: err});
 		}
 
+		if (!user) {
+			return res.status(401).send(info);
+        }
+
         //user validated in passport.js (since user object was returned) - return token
         var userToken = user.createJWT();
         return res.json({error: false, token: userToken});
-    });
+	})(req, res);
 });
 
 //Endpoint for resending verification email (generating a new verification code)
@@ -136,7 +140,7 @@ app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }
 });
 
 //This endpoint is for authenticated users, change password in settings menu for example.
-app.post('/changePassword', (req, res) => {
+app.post('/changePassword', function (req, res) {
 	//Since user is logged in they should have a valid JWT
     passport.authenticate('jwt', (err, user, info) => {
 		if (err) {
@@ -156,15 +160,13 @@ app.post('/changePassword', (req, res) => {
 			user.setHash(result.hash);
 			if (!user.validatePassword(req.body.oldPassword)) return res.status(400).send({ error: true, message: 'Incorrect old password' });
 
-			//Make sure old and new passwords match
-			if (req.body.oldPassword !== req.body.newPassword) return res.status(400).send({ error: true, message: 'Passwords do not match' });
 			//Make sure new password is a valid one
 			if (!user.isValidPassword(req.body.newPassword)) return res.status(400).send({ error: true, message: 'Invalid new password' });
 
 			//Update user collection with new salt/hash to reflect the new password
 			user.setPassword(req.body.newPassword);
 			//save to user collection
-			db.collection('user').save(user, (err, result) => {
+			db.collection('user').updateOne({ email: user.email }, {$set:{ "salt": user.salt, "hash": user.hash, "token": {} }}, function(err, result){
 				if (err) {
 					console.log(err);
 					return res.status(500).send({error: true, message: err});
@@ -172,7 +174,7 @@ app.post('/changePassword', (req, res) => {
 				return res.status(200).send({ error: false, message: 'Password successfully changed' });
 			});   
 		});  
-    });
+	})(req, res);
 });
 
 //endpoint to generate password reset token and send email to user
@@ -199,7 +201,7 @@ app.get('/passwordResetToken', (req, res) => {
   		//Send email with URL to reset password
 
   		//return response with the newly generated verify token
-  		return res.json({error: false, verifyToken: newPasswordResetToken.passwordResetToken});
+  		return res.json({error: false, passwordResetToken: newPasswordResetToken.passwordResetToken});
 	}); 
 });
 
@@ -222,13 +224,13 @@ app.post('/forgotPassword', (req, res) => {
 		if (!user.isValidPassword(req.body.newPassword)) return res.status(400).send({ error: true, message: 'Invalid new password' });
 		user.setPassword(req.body.newPassword);
 		//save to user collection
-		db.collection('user').save(user, (err, result) => {
+		db.collection('user').updateOne({ email: user.email }, {$set:{ "salt": user.salt, "hash": user.hash, "token": {} }}, function(err, result){
 			if (err) {
 				console.log(err);
 				return res.status(500).send({error: true, message: err});
 			}
 			return res.status(200).send({ error: false, message: 'Password reset' });
-		});   
+		}); 
 	}); 
 });
 
@@ -291,9 +293,3 @@ app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) =
   		res.json(result);
 	});
 });
-
-/* Other things to add
- * - Limit number of verification/reset tokens
- * - Check user is on same ip when generating token
- * - token should be hashed
- */

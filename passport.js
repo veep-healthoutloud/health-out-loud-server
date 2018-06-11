@@ -24,7 +24,7 @@ passport.use('local', new LocalStrategy({
     }, 
     function (email, password, done) {
     	//Check if user is in unverified collection, otherwise find the user set credentials
-		dbUtils.checkIfQueryExists("unverified", {email: email}, function(isNotVerified) {
+		dbUtils.checkIfQueryExists('unverified', {email: email}, function(isNotVerified) {
 		    if(isNotVerified) { //return with error since unverified users must not get a JWT
 		    	return done(null, false, {error: 'User is unverified'});
 		    }
@@ -55,7 +55,7 @@ passport.use('local', new LocalStrategy({
 
 passport.use(new JWTStrategy({
         jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
-        secretOrKey   : 'temp_secret'
+        secretOrKey   : process.env.AUTH_KEY
     },
     function (jwtPayload, done) {
     	//Can use email to find user in db, not needed as of now.
