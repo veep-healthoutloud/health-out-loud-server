@@ -32,9 +32,9 @@ passport.use('local', new LocalStrategy({
 		    	db.collection('user').findOne({ email: email }, function (err, result) { 
 		    		if (err) {
 		    			console.log(err);
-		    			return done(null, false, {error: err});
+		    			return done(null, false, {error: true, message: err});
 		    		}
-					if (!result) return done(null, false, {error: 'Incorrect email or password.'}); //User doesnt exist
+					if (!result) return done(null, false, {error: true, message: 'Incorrect email or password.'}); //User doesnt exist
 				
 					//User exists so validate password using salt/hash
 					var user = new User(result.email);
@@ -42,11 +42,11 @@ passport.use('local', new LocalStrategy({
 					user.setHash(result.hash);
 
 					if (!user.validatePassword(password)) { //Validate with user supplied password
-						return done(null, false, {error: 'Incorrect email or password.'});
+						return done(null, false, {error: true, message: 'Incorrect email or password.'});
 					}
 
 					//Password valid so return user object
-					return done(null, user, {success: 'Logged In Successfully'});	
+					return done(null, user, {error:false, message: 'Logged In Successfully'});	
 				});  
 		    }
 		});

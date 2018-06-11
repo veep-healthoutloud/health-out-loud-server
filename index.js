@@ -39,13 +39,13 @@ app.post('/registerAccount', (req, res) => {
 	// Create a new user
 	var user = new User(req.body.email);
 	//Validate email and password
-	if (!user.isValidEmail(req.body.email)) return res.status(400).send({ error: 'Invalid email' });
-	if (!user.isValidPassword(req.body.password)) return res.status(400).send({ error: 'Invalid password' });
+	if (!user.isValidEmail(req.body.email)) return res.status(400).send({ error: true, message: 'Invalid email' });
+	if (!user.isValidPassword(req.body.password)) return res.status(400).send({ error: true, message: 'Invalid password' });
 
 	//Check if email already exists, has a callback parameter so server waits for its result
 	dbUtils.emailExists(req.body.email, function(emailExists) { //emailExists variable is returned by callback in db_utils
 		if (emailExists) {
-			return res.status(400).send({ error: 'Email already exists' });
+			return res.status(400).send({ error: true, message: 'Email already exists' });
 		}
 		else {
 			//Save user to unverified collection
@@ -58,7 +58,7 @@ app.post('/registerAccount', (req, res) => {
 					return res.status(500).send(err);
 				}
 				//this type of result object with ops is only returned on an insert
-				return res.json({client_id: result.ops[0]._id, verification_code: user.token.verifyToken});
+				return res.json({error: false, client_id: result.ops[0]._id, verification_code: user.token.verifyToken});
 			});   
 
 			//send email
@@ -66,23 +66,23 @@ app.post('/registerAccount', (req, res) => {
 	});
 });
 
-//http://localhost:8080/verifyAccount?client_id=cd2b7c19c9734a2ab98dc251868d7724&verification_code=fdca81bae49e43a8b20493fc5ee29052
+//http://localhost:8080/verifyAccount?clientID=cd2b7c19c9734a2ab98dc251868d7724&verificationCode=fdca81bae49e43a8b20493fc5ee29052
 // Verify a user through token link received by email
 app.get('/verifyAccount', (req, res) => {
 	//Find the user that needs to be verified by looking for token
-	db.collection('unverified').findOne({ "_id": ObjectID(req.query.client_id) }, function (err, result) { 
+	db.collection('unverified').findOne({ "_id": ObjectID(req.query.clientID) }, function (err, result) { 
 		if (err) {
 			console.log(err);
 			return res.status(500).send(err);
 		}
-  		if (!result) return res.status(404).send({ error: 'User does not exist or already verified' });
+  		if (!result) return res.status(404).send({ error: true, message: 'User does not exist or already verified' });
 
-  		if (req.query.verification_code !== result.token.verifyToken) return res.status(404).send({ error: 'Invalid token' });
+  		if (req.query.verificationCode !== result.token.verifyToken) return res.status(404).send({ error: true, message: 'Invalid token' });
 
   		//Tokens are the same now make sure token is not expired
   		var user = new User(result.email);
   		//user.setToken(result.token); //Dont need this ?
-  		if (!user.isValidToken(result.token)) return res.status(400).send({ error: 'Expired token' });
+  		if (!user.isValidToken(result.token)) return res.status(400).send({ error: true, message: 'Expired token' });
 
   		//Token is valid so move to user collection since the user has now been validated
   		//These operations are not atomic!
@@ -90,11 +90,11 @@ app.get('/verifyAccount', (req, res) => {
   		db.collection('user').insert(result);
   		db.collection('unverified').remove(result);
 
-  		return res.sendStatus(200);
+  		return res.status(200).send({ error: false, message: 'Account verified' });
 	}); 
 });
 
-app.post('/login', function (req, res) {
+app.post('/login', (req, res) => {
     passport.authenticate('local', (err, user, info) => {
 		if (err) {
 			console.log(err);
@@ -104,9 +104,9 @@ app.post('/login', function (req, res) {
 
         //user validated in passport.js (since user object was returned) - return token
         var userToken = user.createJWT();
-        return res.json({token: userToken});
+        return res.json({error: false, token: userToken});
 
-    })(req, res);
+    });
 });
 
 //Endpoint for resending verification email (generating a new verification code)
@@ -117,7 +117,7 @@ app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }
 			console.log(err);
 			return res.status(500).send(err);
 		}
-  		if (!result) return res.status(404).send({ error: 'User does not exist' });
+  		if (!result) return res.status(404).send({ error: true, message: 'User does not exist' });
 
   		//generate a new token using user object
   		var user = new User(result.email);
@@ -125,20 +125,55 @@ app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }
 
   		//update it in the unverified collection
   		db.collection('unverified').update({"_id": ObjectID(req.query.client_id)}, {$set:{"token": newVerifyToken}}, function(err, result){
-		    if (err) console.log('Error updating object: ' + err);
+		    if (err) {
+		    	console.log('Error updating object: ' + err);
+		    	return res.status(500).send(err);
+		    }
 		});
 
   		//Send email
 
   		//return response with the newly generated verify token
-  		return res.json({verifyToken: newVerifyToken.verifyToken});
+  		return res.json({error: false, verifyToken: newVerifyToken.verifyToken});
 	}); 
 });
 
 
+//req.body.email
+//req.body.oldPassword
+//req.body.newPassword
+app.post('/changePassword', (req, res) => {
+	// Reuse local passport strategy to validate user with email and old password
+
+
+	//TODO: 
+	//Dont reuse passport local here, just do JWT, grab user email and follow similar stuff that passport local does
+	//dont need the unverified db call for example
+
+	//Old password matches so now check if new password is valid
+	//if (!user.isValidPassword(req.body.newPassword)) return res.status(400).send({ error: 'Invalid password' });
+
+	//Update user collection with new salt and hash to reflect the new password
+	//user.setPassword(req.body.password); //salt and hash
+
+	//return success
+
+
+});
+
+//Maybe two endpoints instead
+//forgotPassword for non authenticated users, they need to supply email and receive an email with a password reset token and etc
+//here I can also check if they are verified or not
+
+//changePassword endpoint, basically above but we dont need email since they are already logged in just pass JWT and extract email like that. Then verify
+//using the old and new passwords
+//this is the case where the user is already authenticated
+
+//in the post request the email/id can go as a :param and the passwords in the body, or just put everything in the body to be more secure
+
 //POST ENDPOINTS
 
-app.post('/post', function (req, res) {
+app.post('/post', (req, res) => {
     passport.authenticate('jwt', (err, user, info) => {
 		if (err) {
 			console.log(err);
@@ -146,7 +181,7 @@ app.post('/post', function (req, res) {
 		}
 
         //Request must supply post text and a feelings array
-		if (!(req.body.postBody && req.body.feelings)) return res.status(400).send({ error: 'Missing parameters' });
+		if (!(req.body.postBody && req.body.feelings)) return res.status(400).send({ error: true, message: 'Missing parameters' });
 
 		//add a user and date to request
 		req.body.author = user.email;
@@ -158,9 +193,9 @@ app.post('/post', function (req, res) {
 				console.log(err);
 				return res.status(500).send(err);
 			}
-	  		res.json({success: "Data added", id: result._id});
+	  		res.json({error: false, id: result._id});
 	  	});
-    })(req, res);
+    });
 });
 
 // Get all posts by a feeling
