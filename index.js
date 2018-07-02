@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 
+require('dotenv').config(); //module to use env variables from a local .env file
+
 var bodyParser = require('body-parser');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
