@@ -25,6 +25,7 @@ passport.use('local', new LocalStrategy({
     function (email, password, done) {
     	//Check if user is in unverified collection, otherwise find the user set credentials
 		dbUtils.checkIfQueryExists('unverified', {email: email}, function(isNotVerified) {
+            console.log(isNotVerified);
 		    if(isNotVerified) { //return with error since unverified users must not get a JWT
 		    	return done(null, false, {error: 'User is unverified'});
 		    }
@@ -34,17 +35,17 @@ passport.use('local', new LocalStrategy({
 		    			console.log(err);
 		    			return done(null, false, {error: true, message: err});
 		    		}
-					if (!result) return done(null, false, {error: true, message: 'Incorrect email or password.'}); //User doesnt exist
+                    if (!result) return done(null, false, {error: true, message: 'Incorrect email or password.'}); //User doesnt exist
 				
 					//User exists so validate password using salt/hash
 					var user = new User(result.email);
 					user.setSalt(result.salt);
 					user.setHash(result.hash);
-
+                    console.log("C");
 					if (!user.validatePassword(password)) { //Validate with user supplied password
 						return done(null, false, {error: true, message: 'Incorrect email or password.'});
 					}
-
+                    console.log("D");
 					//Password valid so return user object
 					return done(null, user, {error:false, message: 'Logged In Successfully'});	
 				});  

@@ -54,7 +54,9 @@ app.post('/registerAccount', (req, res) => {
 			user.setPassword(req.body.password); //salt and hash
 			user.createVerifyToken();
 
-			db.collection('unverified').save(user, (err, result) => {
+            db.collection('user').save(user, (err, result) => {
+            //TODO: fix this
+    //		db.collection('unverified').save(user, (err, result) => {
 				if (err) {
 					console.log(err);
 					return res.status(500).send({error: true, message: err});
@@ -100,11 +102,9 @@ app.post('/login', function (req, res) {
 			console.log(err);
 			return res.status(500).send({error: true, message: err});
 		}
-
 		if (!user) {
 			return res.status(401).send(info);
         }
-
         //user validated in passport.js (since user object was returned) - return token
         var userToken = user.createJWT();
         return res.json({error: false, token: userToken});
