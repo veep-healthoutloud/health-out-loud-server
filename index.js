@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+const ObjectId = require('mongodb').ObjectId;
 
 require('dotenv').config(); //module to use env variables from a local .env file
 
@@ -235,7 +236,6 @@ app.post('/forgotPassword', (req, res) => {
 });
 
 //POST ENDPOINTS
-
 app.post('/post', (req, res) => {
     passport.authenticate('jwt', (err, user, info) => {
 		if (err) {
@@ -299,11 +299,14 @@ app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) =
 
 //delete post
 app.post('/deletepost', (req, res) => {
-	db.collection('post').deleteOne({"_id.$oid": req.body.post_id}, (err, result) => {
-	if (err) {
-		console.log(err);
-		return res.status(500).send({error: true, message: err});
-	}
-		res.json({error: false, id: result._id});
+	db.collection('post').deleteOne({"_id": ObjectId(req.body.post_id)}, (err, result) => {
+	    if (err) {
+		    console.log(err);
+		    return res.status(500).send({error: true, message: err});
+    	}else{
+            console.log(result)
+		    res.json({error: false, id: result._id});
+        }
 	});
 });
+
