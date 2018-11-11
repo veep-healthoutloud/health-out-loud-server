@@ -63,7 +63,7 @@ app.post('/registerAccount', (req, res) => {
 				}
 				//this type of result object with ops is only returned on an insert
 				return res.json({error: false, clientID: result.ops[0]._id, verificationCode: user.token.verifyToken});
-			});   
+			});
 
 			//send email
 		}
@@ -73,7 +73,7 @@ app.post('/registerAccount', (req, res) => {
 // Verify a user through token link received by email
 app.get('/verifyAccount', (req, res) => {
 	//Find the user that needs to be verified
-	db.collection('unverified').findOne({ "_id": ObjectID(req.query.clientID) }, function (err, result) { 
+	db.collection('unverified').findOne({ "_id": ObjectID(req.query.clientID) }, function (err, result) {
 		if (err) {
 			console.log(err);
 			return res.status(500).send({error: true, message: err});
@@ -93,7 +93,7 @@ app.get('/verifyAccount', (req, res) => {
   		db.collection('unverified').remove(result);
 
   		return res.status(200).send({ error: false, message: 'Account verified' });
-	}); 
+	});
 });
 
 app.post('/login', function (req, res) {
@@ -113,7 +113,7 @@ app.post('/login', function (req, res) {
 
 //Endpoint for resending verification email (generating a new verification code)
 app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }), (req, res) => {
-		db.collection('unverified').findOne({ "_id": ObjectID(req.query.client_id) }, function (err, result) { 
+		db.collection('unverified').findOne({ "_id": ObjectID(req.query.client_id) }, function (err, result) {
 		if (err) {
 			console.log(err);
 			return res.status(500).send({error: true, message: err});
@@ -136,7 +136,7 @@ app.get('/refreshVerifyAccount', passport.authenticate('jwt', { session: false }
 
   		//return response with the newly generated verify token
   		return res.json({error: false, verifyToken: newVerifyToken.verifyToken});
-	}); 
+	});
 });
 
 //This endpoint is for authenticated users, change password in settings menu for example.
@@ -149,7 +149,7 @@ app.post('/changePassword', function (req, res) {
 		}
 		if (!user.email) return res.status(404).send({ error: true, message: 'User doesnt exist' }); //sanity check
 
-		db.collection('user').findOne({ email: user.email }, function (err, result) { 
+		db.collection('user').findOne({ email: user.email }, function (err, result) {
 			if (err) {
 				console.log(err);
 				return done(null, false, {error: true, message: err});
@@ -172,14 +172,14 @@ app.post('/changePassword', function (req, res) {
 					return res.status(500).send({error: true, message: err});
 				}
 				return res.status(200).send({ error: false, message: 'Password successfully changed' });
-			});   
-		});  
+			});
+		});
 	})(req, res);
 });
 
 //endpoint to generate password reset token and send email to user
 app.get('/passwordResetToken', (req, res) => {
-	db.collection('user').findOne({ "email": req.query.email }, function (err, result) { 
+	db.collection('user').findOne({ "email": req.query.email }, function (err, result) {
 		if (err) {
 			console.log(err);
 			return res.status(500).send({error: true, message: err});
@@ -202,12 +202,12 @@ app.get('/passwordResetToken', (req, res) => {
 
   		//return response with the newly generated verify token
   		return res.json({error: false, passwordResetToken: newPasswordResetToken.passwordResetToken});
-	}); 
+	});
 });
 
 //Change password for non-authenticated users, since they arent logged in use a password reset token + email to reset password
 app.post('/forgotPassword', (req, res) => {
-	db.collection('user').findOne({ email: req.body.email }, function (err, result) { 
+	db.collection('user').findOne({ email: req.body.email }, function (err, result) {
 		if (err) {
 			console.log(err);
 			return res.status(500).send({error: true, message: err});
@@ -230,8 +230,8 @@ app.post('/forgotPassword', (req, res) => {
 				return res.status(500).send({error: true, message: err});
 			}
 			return res.status(200).send({ error: false, message: 'Password reset' });
-		}); 
-	}); 
+		});
+	});
 });
 
 //POST ENDPOINTS
@@ -260,6 +260,8 @@ app.post('/post', (req, res) => {
 	  	});
     });
 });
+
+
 
 // Get all posts by a feeling
 app.get('/posts/feeling/:feeling', passport.authenticate('jwt', { session: false }), (req, res) => {
@@ -291,5 +293,17 @@ app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) =
 			return res.status(500).send({error: true, message: err});
 		}
   		res.json(result);
+	});
+});
+
+
+//delete post
+app.post('/deletepost', (req, res) => {
+	db.collection('post').deleteOne({"_id.$oid": req.body.post_id}, (err, result) => {
+	if (err) {
+		console.log(err);
+		return res.status(500).send({error: true, message: err});
+	}
+		res.json({error: false, id: result._id});
 	});
 });
