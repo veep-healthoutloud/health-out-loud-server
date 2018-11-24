@@ -32,6 +32,9 @@ dbConnection.connectToServer(function(err) {
 
 var dbUtils = require('./db_utils');
 
+
+
+
 // USER ENDPOINTS
 
 //Registration: Add a new user to db
@@ -98,7 +101,7 @@ app.get('/verifyAccount', (req, res) => {
 });
 
 app.post('/login', function (req, res) {
-    passport.authenticate('local', (err, user, info) => {
+    passport.authenticate('local', (err, user, usertoken, info) => {
 		if (err) {
 			console.log(err);
 			return res.status(500).send({error: true, message: err});
@@ -106,9 +109,9 @@ app.post('/login', function (req, res) {
 		if (!user) {
 			return res.status(401).send(info);
         }
-        //user validated in passport.js (since user object was returned) - return token
-        var userToken = user.createJWT();
-        return res.json({error: false, token: userToken});
+        //user validated in passport.js (since user and usertoken object was returned) - return token
+				//Note: Usertoken contains email only
+				return res.json({error: false, token: usertoken});
 	})(req, res);
 });
 
@@ -236,6 +239,9 @@ app.post('/forgotPassword', (req, res) => {
 });
 
 //POST ENDPOINTS
+
+
+
 app.post('/post', (req, res) => {
     passport.authenticate('jwt', (err, user, info) => {
 		if (err) {
@@ -263,6 +269,24 @@ app.post('/post', (req, res) => {
 
 
 
+
+
+
+app.post('/post', (req, res) => {
+	if (!(req.body.postBody && req.body.feelings)) return res.status(400).send({ error: true, message: 'Missing parameters' });
+
+	//add a user and date to request
+
+		db.collection('post').save(req.body, (err, result) => {
+			if (err) {
+				console.log(err);
+				return res.status(500).send({error: true, message: err});
+			}
+	  		res.json({error: false, id: result._id});
+	  	});
+    });
+
+
 // Get all posts by a feeling
 app.get('/posts/feeling/:feeling', passport.authenticate('jwt', { session: false }), (req, res) => {
 	db.collection('post').find({feelings: req.params.feeling}).toArray(function(err, result) {
@@ -285,28 +309,31 @@ app.get('/posts/user/:clientID', passport.authenticate('jwt', { session: false }
 	});
 });
 
+
+
 // Get all posts
 app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
-  	db.collection('post').find().toArray(function(err, result) {
+		db.collection('post').find().toArray(function(err, result) {
 		if (err) {
 			console.log(err);
 			return res.status(500).send({error: true, message: err});
 		}
-  		res.json(result);
+			res.json(result);
 	});
 });
 
 
-//delete post
-app.post('/deletepost', (req, res) => {
-	db.collection('post').deleteOne({"_id": ObjectId(req.body.post_id)}, (err, result) => {
-	    if (err) {
-		    console.log(err);
-		    return res.status(500).send({error: true, message: err});
-    	}else{
-            console.log(result)
-		    res.json({error: false, id: result._id});
-        }
+
+
+
+app.post('/deletepost', passport.authenticate('jwt', { session: false }), (req, res) => {
+//	db.collection('post').deleteOne({"_id.$oid": req.body.post_id}, (err, result) => {
+
+	db.collection('post').deleteOne({"_id": ObjectID(req.body.post_id)}, (err, result) => {
+	if (err) {
+		console.log(err);
+		return res.status(500).send({error: true, message: err});
+	}
+		res.json({error: false, id: result._id});
 	});
 });
-

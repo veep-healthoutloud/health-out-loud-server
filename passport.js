@@ -6,6 +6,7 @@ const User = require('./user');
 const passportJWT = require('passport-jwt');
 const JWTStrategy   = passportJWT.Strategy;
 const ExtractJWT = passportJWT.ExtractJwt;
+const jwt = require('jsonwebtoken');
 
 //Grab DB connection
 var dbConnection = require('./db_connection');
@@ -21,7 +22,7 @@ passport.use('local', new LocalStrategy({
         usernameField: 'email',
         passwordField: 'password',
         session: false
-    }, 
+    },
     function (email, password, done) {
     	//Check if user is in unverified collection, otherwise find the user set credentials
 		dbUtils.checkIfQueryExists('unverified', {email: email}, function(isNotVerified) {
@@ -30,13 +31,13 @@ passport.use('local', new LocalStrategy({
 		    	return done(null, false, {error: 'User is unverified'});
 		    }
 		    else { //Find the user
-		    	db.collection('user').findOne({ email: email }, function (err, result) { 
+		    	db.collection('user').findOne({ email: email }, function (err, result) {
 		    		if (err) {
 		    			console.log(err);
 		    			return done(null, false, {error: true, message: err});
 		    		}
                     if (!result) return done(null, false, {error: true, message: 'Incorrect email or password.'}); //User doesnt exist
-				
+
 					//User exists so validate password using salt/hash
 					var user = new User(result.email);
 					user.setSalt(result.salt);
@@ -47,20 +48,25 @@ passport.use('local', new LocalStrategy({
 					}
                     console.log("D");
 					//Password valid so return user object
-					return done(null, user, {error:false, message: 'Logged In Successfully'});	
-				});  
+
+					//create a token containing user email (used to authenticate)
+					const usertoken = jwt.sign(user.email, process.env.AUTH_KEY);
+					return done(null, user, usertoken, {error:false, message: 'Logged In Successfully'});
+				});
 		    }
 		});
     }
 ));
 
-passport.use(new JWTStrategy({
-        jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
-        secretOrKey   : process.env.AUTH_KEY
-    },
-    function (jwtPayload, done) {
-    	//Can use email to find user in db, not needed as of now.
-    	var user = new User(jwtPayload.email);
-    	return done(null, user);
-    }
-));
+const opts = {}
+opts.jwtFromRequest = ExtractJWT.fromAuthHeaderAsBearerToken();
+opts.secretOrKey =  process.env.AUTH_KEY;
+
+
+const strategy = new JWTStrategy(opts, (jwtpayload, done) => {
+	//user contains the email of the current user
+	var user = new User(jwtpayload);
+	return done(null, user);
+});
+
+passport.use(strategy);
