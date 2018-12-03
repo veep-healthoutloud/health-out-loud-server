@@ -28,15 +28,15 @@ passport.use('local', new LocalStrategy({
 		dbUtils.checkIfQueryExists('unverified', {email: email}, function(isNotVerified) {
             console.log(isNotVerified);
 		    if(isNotVerified) { //return with error since unverified users must not get a JWT
-		    	return done(null, false, {error: 'User is unverified'});
+		    	return done(null, false, false, {error: 'User is unverified'});
 		    }
 		    else { //Find the user
 		    	db.collection('user').findOne({ email: email }, function (err, result) {
 		    		if (err) {
 		    			console.log(err);
-		    			return done(null, false, {error: true, message: err});
+		    			return done(null, false, false, {error: true, message: err});
 		    		}
-                    if (!result) return done(null, false, {error: true, message: 'Incorrect email or password.'}); //User doesnt exist
+                    if (!result) return done(null, false, false, {error: true, message: 'Incorrect email or password.'}); //User doesnt exist
 
 					//User exists so validate password using salt/hash
 					var user = new User(result.email);
@@ -44,7 +44,7 @@ passport.use('local', new LocalStrategy({
 					user.setHash(result.hash);
                     console.log("C");
 					if (!user.validatePassword(password)) { //Validate with user supplied password
-						return done(null, false, {error: true, message: 'Incorrect email or password.'});
+						return done(null, false, false, {error: true, message: 'Incorrect email or password.'});
 					}
                     console.log("D");
 					//Password valid so return user object
@@ -65,8 +65,15 @@ opts.secretOrKey =  process.env.AUTH_KEY;
 
 const strategy = new JWTStrategy(opts, (jwtpayload, done) => {
 	//user contains the email of the current user
-	var user = new User(jwtpayload);
-	return done(null, user);
+	var email = new User(jwtpayload);
+	db.collection('user').findOne({ email: email }, function (err, result) {
+		if (err) {
+			console.log(err);
+			return done(null, false);
+		}
+		if (!result) return done(null, false);
+	});
+	return done(null, email);
 });
 
 passport.use(strategy);

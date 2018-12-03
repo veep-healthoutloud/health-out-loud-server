@@ -311,7 +311,8 @@ app.get('/posts/user/:clientID', passport.authenticate('jwt', { session: false }
 
 
 
-// Get all posts
+
+
 app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
 		db.collection('post').find().toArray(function(err, result) {
 		if (err) {
@@ -321,8 +322,6 @@ app.get('/posts', passport.authenticate('jwt', { session: false }), (req, res) =
 			res.json(result);
 	});
 });
-
-
 
 
 
